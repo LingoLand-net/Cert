@@ -135,6 +135,26 @@ footer {
   box-sizing: border-box;
   animation: animloader 4s linear infinite;
 }
+.inline-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+    margin: 1rem 0;
+    text-align: center;
+}
+.inline-loader.hidden {
+    display: none;
+}
+.inline-loader p {
+    margin-top: 1rem;
+    color: #0f172a;
+    font-weight: 600;
+}
 
 @keyframes animloader {
   0% {

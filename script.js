@@ -25,14 +25,19 @@
     const pdfIssueDate = document.getElementById('pdfIssueDate');
     const pdfIssuer = document.getElementById('pdfIssuer');
 
-    const ocrOverlay = document.getElementById('ocrOverlay');
+    // Inline loader element
+    const inlineLoader = document.getElementById('inlineOcrLoader');
 
-    function showOcrLoader() {
-        if (ocrOverlay) ocrOverlay.classList.add('active');
+    function showInlineLoader() {
+        if (inlineLoader) inlineLoader.classList.remove('hidden');
+        const certGrid = certificateState?.querySelector('.grid');
+        if (certGrid) certGrid.style.display = 'none';
     }
 
-    function hideOcrLoader() {
-        if (ocrOverlay) ocrOverlay.classList.remove('active');
+    function hideInlineLoader() {
+        if (inlineLoader) inlineLoader.classList.add('hidden');
+        const certGrid = certificateState?.querySelector('.grid');
+        if (certGrid) certGrid.style.display = '';
     }
 
     function getCertIdFromURL() {
@@ -51,6 +56,9 @@
             if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
         } else if (state === 'certificate') {
             certificateState.classList.remove('hidden');
+            const certGrid = certificateState?.querySelector('.grid');
+            if (certGrid) certGrid.style.display = '';
+            hideInlineLoader();
         } else if (state === 'error') {
             errorState.classList.remove('hidden');
             document.title = 'Certificate Not Found — Lingo-Ville';
@@ -70,10 +78,9 @@
             .catch(() => showToast('⚠️ Copy manually'));
     }
 
-    // Load Tesseract dynamically (only once)
     async function loadTesseract() {
         if (window.Tesseract) return window.Tesseract;
-        showToast('Getting student report (May take a few seconds)...', 5000);
+        showToast('Getting student report (may take a few seconds)...', 5000);
         await new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
@@ -84,7 +91,6 @@
         return window.Tesseract;
     }
 
-    // Render first page of PDF to canvas for OCR
     async function pdfPageToCanvas(pdfUrl) {
         const loadingTask = pdfjsLib.getDocument(pdfUrl);
         const pdf = await loadingTask.promise;
@@ -98,11 +104,10 @@
         return canvas;
     }
 
-    // Extract metadata using OCR (on canvas)
     async function extractWithOCR(pdfUrl) {
         const Tesseract = await loadTesseract();
         showToast('Gathering certificate information (may take 5–10 seconds)...', 8000);
-        showOcrLoader();
+        showInlineLoader();
         try {
             const canvas = await pdfPageToCanvas(pdfUrl);
             const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
@@ -111,11 +116,10 @@
             console.log('OCR extracted text:', text);
             return parseMetadataFromText(text);
         } finally {
-            hideOcrLoader();
+            hideInlineLoader();
         }
     }
 
-    // Parse metadata from plain text (same patterns used for PDF text)
     function parseMetadataFromText(fullText) {
         let issueDate = '—';
         let dateMatch = fullText.match(/Awarded\s+on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
@@ -138,7 +142,6 @@
         return { issueDate, course, level, issuer };
     }
 
-    // Try PDF text extraction (normal method)
     async function extractPdfText(pdfUrl) {
         try {
             const loadingTask = pdfjsLib.getDocument(pdfUrl);
@@ -210,13 +213,16 @@
         reportDownloadBtn.href = reportPdfUrl;
         reportDownloadBtn.setAttribute('download', 'rep-' + normalizedId + '.pdf');
 
-        // Reset
         pdfCourseName.textContent = '—';
         pdfLevel.textContent = '—';
         pdfIssueDate.textContent = '—';
         pdfIssuer.textContent = 'Lingo‑Ville Language Centre';
 
-        // Try extraction (will auto-fallback to OCR if no text)
+        showState('certificate');
+        const certGrid = certificateState?.querySelector('.grid');
+        if (certGrid) certGrid.style.display = 'none';
+        showInlineLoader();
+
         const metadata = await extractPdfMetadata(certPdfUrl);
         if (metadata) {
             if (metadata.course !== '—') pdfCourseName.textContent = metadata.course;
@@ -229,8 +235,10 @@
             console.warn(`Could not extract date even with OCR for ${normalizedId}.`);
         }
 
+        hideInlineLoader();
+        if (certGrid) certGrid.style.display = '';
+
         loadPdfPreview(certPdfUrl, certPdfContainer, pdfLoading);
-        showState('certificate');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -281,7 +289,6 @@
         window.location.hash = '#/' + certid.trim().toLowerCase();
     }
 
-    // Event listeners
     copyLinkBtn.addEventListener('click', copyVerificationLink);
     backBtn.addEventListener('click', () => {
         if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
