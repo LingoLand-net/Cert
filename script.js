@@ -43,7 +43,6 @@
         if (state === 'landing') {
             landingState.classList.remove('hidden');
             document.title = 'Certificate Verification — Lingo-Ville';
-            // Clear hash when on landing page
             if (window.location.hash) {
                 window.history.replaceState({}, '', window.location.pathname);
             }
@@ -68,7 +67,10 @@
             .catch(() => showToast('⚠️ Copy manually'));
     }
 
-    // PDF text extraction (unchanged)
+    /**
+     * Robust PDF metadata extraction from first page text.
+     * Returns object with issueDate, course, level, issuer.
+     */
     async function extractPdfMetadata(pdfUrl) {
         try {
             const loadingTask = pdfjsLib.getDocument(pdfUrl);
@@ -76,75 +78,115 @@
             const page = await pdf.getPage(1);
             const textContent = await page.getTextContent();
             const fullText = textContent.items.map(item => item.str).join(' ');
-            
+
+            // ----- ISSUE DATE -----
             let issueDate = '—';
-            const dateMatch = fullText.match(/Awarded on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i) ||
-                              fullText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4})/i) ||
-                              fullText.match(/([A-Za-z]+\s+\d{1,2},\s+\d{4})/);
-            if (dateMatch) issueDate = dateMatch[1];
-            
+            // Look for "Awarded on" pattern (flexible spacing)
+            let dateMatch = fullText.match(/Awarded\s+on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
+            if (!dateMatch) {
+                dateMatch = fullText.match(/(?:Date|Issued):\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})/i);
+            }
+            if (dateMatch) issueDate = dateMatch[1].replace(/,(\S)/, ', $1'); // normalize
+
+            // ----- COURSE NAME -----
             let course = '—';
-            const courseMatch = fullText.match(/completed the\s+([A-Za-z\s&]+?)\s+course/i) ||
+            const courseMatch = fullText.match(/completed\s+the\s+([A-Za-z\s&]+?)\s+course/i) ||
                                 fullText.match(/course\s+([A-Za-z\s&]+?)(?=\s+level|\s+\(|$)/i);
             if (courseMatch) course = courseMatch[1].trim();
-            
+
+            // ----- LEVEL -----
             let level = '—';
-            const levelMatch = fullText.match(/level\s+([A-Za-z0-9\/\+]+)/i) ||
-                               fullText.match(/\b([ABC][12])(?:\+|(?:\/[ABC][12]))?\b/i);
+            // Look for "Level B1/B1+" or similar
+            let levelMatch = fullText.match(/level\s+([A-Za-z0-9\/\+]+)/i);
+            if (!levelMatch) {
+                levelMatch = fullText.match(/\b([ABC][12](?:\+|\/[ABC][12])?)\b/i);
+            }
             if (levelMatch) level = levelMatch[1].toUpperCase();
-            
+
+            // ----- ISSUER (Professor name) -----
             let issuer = 'Lingo‑Ville Language Centre';
-            const issuerMatch = fullText.match(/Mr\.\s+([A-Za-z\s]+?)(?=\s+English|\s+Director|$)/i) ||
-                                fullText.match(/Director of\s+([A-Za-z\s]+?)(?=\.|$)/i);
-            if (issuerMatch) issuer = issuerMatch[1].trim();
-            if (issuer !== 'Lingo‑Ville Language Centre') issuer = 'Mr. ' + issuer;
-            
+            // Try to extract "Mr. Bessem Mbarek" (supports Mr/Mrs/Ms, stops before "English" or "Teacher" or "Director")
+            const issuerMatch = fullText.match(/(Mr|Ms|Mrs)\.\s+([A-Za-z\s]+?)(?=\s+English|\s+Teacher|\s+Director|$)/i);
+            if (issuerMatch) {
+                issuer = `${issuerMatch[1]}. ${issuerMatch[2].trim()}`;
+            } else {
+                // Fallback: look for the name after "Teacher & Managing Director of"
+                const fallbackMatch = fullText.match(/Managing\s+Director\s+of\s+([A-Za-z\s]+?)(?:\.|$)/i);
+                if (fallbackMatch) issuer = fallbackMatch[1].trim();
+            }
+
             return { issueDate, course, level, issuer };
         } catch (err) {
-            console.warn('PDF text extraction failed', err);
+            console.warn('PDF extraction failed', err);
             return null;
+        }
+    }
+
+    /**
+     * Check if a PDF exists (via HEAD request) before attempting to load.
+     */
+    async function pdfExists(url) {
+        try {
+            const response = await fetch(url, { method: 'HEAD' });
+            return response.ok;
+        } catch {
+            return false;
         }
     }
 
     async function loadCertificate(certid) {
         const normalizedId = certid.trim().toLowerCase();
-        if (!/^[a-z]+-\d{2}[a-z]+\d?-[a-z][12]$/i.test(normalizedId)) {
-            showError('Invalid certificate ID format. Use format like encom-26yk-b1');
+        // Allow letters, digits, hyphens – more flexible but still safe
+        if (!/^[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$/i.test(normalizedId)) {
+            showError('Invalid certificate ID format. Expected format like encom-26ma1-b1');
             return;
         }
 
         document.title = `Certificate ${normalizedId} | Lingo-Ville Verification`;
-        
-        // Ensure hash is correct (in case called directly)
+
+        // Ensure hash matches
         const currentHash = window.location.hash.replace(/^#\/?/, '');
         if (currentHash !== normalizedId) {
             window.location.hash = '#/' + normalizedId;
-            return; // hashchange will trigger again
+            return;
         }
-
-        certIdDisplay.textContent = normalizedId;
-        certPdfLabel.textContent = normalizedId + '.pdf';
-        reportPdfLabel.textContent = 'rep-' + normalizedId + '.pdf';
 
         const certPdfUrl = CERTS_PATH + normalizedId + '.pdf';
         const reportPdfUrl = CERTS_PATH + 'rep-' + normalizedId + '.pdf';
+
+        // Check if the certificate PDF actually exists
+        const certExists = await pdfExists(certPdfUrl);
+        if (!certExists) {
+            showError(`Certificate "${normalizedId}" not found. Please check the ID and try again.`);
+            return;
+        }
+
+        // Update UI
+        certIdDisplay.textContent = normalizedId;
+        certPdfLabel.textContent = normalizedId + '.pdf';
+        reportPdfLabel.textContent = 'rep-' + normalizedId + '.pdf';
 
         certDownloadBtn.href = certPdfUrl;
         certDownloadBtn.setAttribute('download', normalizedId + '.pdf');
         reportDownloadBtn.href = reportPdfUrl;
         reportDownloadBtn.setAttribute('download', 'rep-' + normalizedId + '.pdf');
 
+        // Reset metadata placeholders
         pdfCourseName.textContent = '—';
         pdfLevel.textContent = '—';
         pdfIssueDate.textContent = '—';
         pdfIssuer.textContent = 'Lingo‑Ville Language Centre';
 
+        // Extract and display metadata
         const metadata = await extractPdfMetadata(certPdfUrl);
         if (metadata) {
             if (metadata.course !== '—') pdfCourseName.textContent = metadata.course;
             if (metadata.level !== '—') pdfLevel.textContent = metadata.level;
             if (metadata.issueDate !== '—') pdfIssueDate.textContent = metadata.issueDate;
             if (metadata.issuer) pdfIssuer.textContent = metadata.issuer;
+        } else {
+            // Still show the certificate, but metadata extraction failed (maybe text is weird)
+            console.warn('Could not extract metadata, using defaults');
         }
 
         loadPdfPreview(certPdfUrl, certPdfContainer, pdfLoading);
@@ -187,7 +229,7 @@
     }
 
     function showError(msg) {
-        errorMessageEl.textContent = msg || 'Certificate ID not found.';
+        errorMessageEl.textContent = msg || 'Certificate ID not found or invalid.';
         showState('error');
     }
 
@@ -199,7 +241,6 @@
             showState('landing');
             return;
         }
-        // Set the hash – this triggers hashchange event
         window.location.hash = '#/' + certid.trim().toLowerCase();
     }
 
@@ -235,7 +276,6 @@
         }
     });
 
-    // Listen to hash changes (back/forward, manual URL edits)
     window.addEventListener('hashchange', () => {
         const certid = getCertIdFromURL();
         if (certid) {
@@ -247,7 +287,7 @@
 
     document.getElementById('currentYear').textContent = new Date().getFullYear();
 
-    // Initial load: only look at hash
+    // Initial load
     const initialCertId = getCertIdFromURL();
     if (initialCertId) {
         loadCertificate(initialCertId);
