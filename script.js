@@ -108,7 +108,7 @@
 
     async function loadCertificate(certid) {
         const normalizedId = certid.trim().toLowerCase();
-        if (!/^[a-z]+-\d{2}[a-z]+-[a-z][12]$/i.test(normalizedId)) {
+        if (!/^[a-z]+-\d{2}[a-z]+\d?-[a-z][12]$/i.test(normalizedId)) {
             showError('Invalid certificate ID format. Use format like encom-26yk-b1');
             return;
         }
