@@ -20,19 +20,19 @@
     const certIdInput = document.getElementById('certIdInput');
     const errorMessageEl = document.getElementById('errorMessage');
 
-    // PDF extracted data fields (no student name)
     const pdfCourseName = document.getElementById('pdfCourseName');
     const pdfLevel = document.getElementById('pdfLevel');
     const pdfIssueDate = document.getElementById('pdfIssueDate');
     const pdfIssuer = document.getElementById('pdfIssuer');
 
+    /**
+     * Get certificate ID only from URL hash (#/certid)
+     */
     function getCertIdFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('certid')) return urlParams.get('certid').trim().toLowerCase();
         const hash = window.location.hash.replace(/^#\/?/, '');
-        if (hash && hash !== 'index.html') return hash.toLowerCase();
-        let path = window.location.pathname.replace(/^\/+|\/+$/g, '').replace(/index\.html$/, '');
-        if (path && path !== '') return path.toLowerCase();
+        if (hash && hash !== 'index.html' && hash !== '') {
+            return hash.toLowerCase();
+        }
         return null;
     }
 
@@ -43,7 +43,10 @@
         if (state === 'landing') {
             landingState.classList.remove('hidden');
             document.title = 'Certificate Verification — Lingo-Ville';
-            window.history.replaceState({}, '', window.location.pathname.split('/').slice(0, -1).join('/') + '/');
+            // Clear hash when on landing page
+            if (window.location.hash) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
         } else if (state === 'certificate') {
             certificateState.classList.remove('hidden');
         } else if (state === 'error') {
@@ -60,11 +63,12 @@
     }
 
     function copyVerificationLink() {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url).then(() => showToast('✅ Verification link copied!')).catch(() => showToast('⚠️ Copy manually'));
+        navigator.clipboard.writeText(window.location.href)
+            .then(() => showToast('✅ Verification link copied!'))
+            .catch(() => showToast('⚠️ Copy manually'));
     }
 
-    // PDF text extraction – now focuses on date, course, level, issuer (no name)
+    // PDF text extraction (unchanged)
     async function extractPdfMetadata(pdfUrl) {
         try {
             const loadingTask = pdfjsLib.getDocument(pdfUrl);
@@ -73,26 +77,22 @@
             const textContent = await page.getTextContent();
             const fullText = textContent.items.map(item => item.str).join(' ');
             
-            // Extract Issue Date (e.g., "June 12, 2026")
             let issueDate = '—';
             const dateMatch = fullText.match(/Awarded on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i) ||
                               fullText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4})/i) ||
                               fullText.match(/([A-Za-z]+\s+\d{1,2},\s+\d{4})/);
             if (dateMatch) issueDate = dateMatch[1];
             
-            // Extract Course
             let course = '—';
             const courseMatch = fullText.match(/completed the\s+([A-Za-z\s&]+?)\s+course/i) ||
                                 fullText.match(/course\s+([A-Za-z\s&]+?)(?=\s+level|\s+\(|$)/i);
             if (courseMatch) course = courseMatch[1].trim();
             
-            // Extract Level (B1, B2, A1, etc.)
             let level = '—';
             const levelMatch = fullText.match(/level\s+([A-Za-z0-9\/\+]+)/i) ||
                                fullText.match(/\b([ABC][12])(?:\+|(?:\/[ABC][12]))?\b/i);
             if (levelMatch) level = levelMatch[1].toUpperCase();
             
-            // Extract Issuer (teacher/director)
             let issuer = 'Lingo‑Ville Language Centre';
             const issuerMatch = fullText.match(/Mr\.\s+([A-Za-z\s]+?)(?=\s+English|\s+Director|$)/i) ||
                                 fullText.match(/Director of\s+([A-Za-z\s]+?)(?=\.|$)/i);
@@ -114,7 +114,13 @@
         }
 
         document.title = `Certificate ${normalizedId} | Lingo-Ville Verification`;
-        window.history.replaceState({ certid: normalizedId }, '', '/' + normalizedId);
+        
+        // Ensure hash is correct (in case called directly)
+        const currentHash = window.location.hash.replace(/^#\/?/, '');
+        if (currentHash !== normalizedId) {
+            window.location.hash = '#/' + normalizedId;
+            return; // hashchange will trigger again
+        }
 
         certIdDisplay.textContent = normalizedId;
         certPdfLabel.textContent = normalizedId + '.pdf';
@@ -128,13 +134,11 @@
         reportDownloadBtn.href = reportPdfUrl;
         reportDownloadBtn.setAttribute('download', 'rep-' + normalizedId + '.pdf');
 
-        // Reset fields before extraction
         pdfCourseName.textContent = '—';
         pdfLevel.textContent = '—';
         pdfIssueDate.textContent = '—';
         pdfIssuer.textContent = 'Lingo‑Ville Language Centre';
 
-        // Attempt to extract metadata (no name field)
         const metadata = await extractPdfMetadata(certPdfUrl);
         if (metadata) {
             if (metadata.course !== '—') pdfCourseName.textContent = metadata.course;
@@ -143,7 +147,6 @@
             if (metadata.issuer) pdfIssuer.textContent = metadata.issuer;
         }
 
-        // Load PDF preview
         loadPdfPreview(certPdfUrl, certPdfContainer, pdfLoading);
         showState('certificate');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -189,19 +192,66 @@
     }
 
     function navigateToCertId(certid) {
-        if (!certid?.trim()) { showState('landing'); return; }
-        loadCertificate(certid.trim());
+        if (!certid?.trim()) {
+            if (window.location.hash) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+            showState('landing');
+            return;
+        }
+        // Set the hash – this triggers hashchange event
+        window.location.hash = '#/' + certid.trim().toLowerCase();
     }
 
     // Event listeners
     copyLinkBtn.addEventListener('click', copyVerificationLink);
-    backBtn.addEventListener('click', () => { showState('landing'); certIdInput.value = ''; certIdInput.focus(); });
-    errorBackBtn.addEventListener('click', () => { showState('landing'); certIdInput.value = ''; certIdInput.focus(); });
-    searchBtn.addEventListener('click', () => { const val = certIdInput.value.trim(); if (val) navigateToCertId(val); else showToast('Enter a certificate ID'); });
-    certIdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const val = certIdInput.value.trim(); if (val) navigateToCertId(val); else showToast('Enter ID'); } });
-    window.addEventListener('popstate', () => { const id = getCertIdFromURL(); id ? loadCertificate(id) : showState('landing'); });
+    backBtn.addEventListener('click', () => {
+        if (window.location.hash) {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+        showState('landing');
+        certIdInput.value = '';
+        certIdInput.focus();
+    });
+    errorBackBtn.addEventListener('click', () => {
+        if (window.location.hash) {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+        showState('landing');
+        certIdInput.value = '';
+        certIdInput.focus();
+    });
+    searchBtn.addEventListener('click', () => {
+        const val = certIdInput.value.trim();
+        if (val) navigateToCertId(val);
+        else showToast('Enter a certificate ID');
+    });
+    certIdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = certIdInput.value.trim();
+            if (val) navigateToCertId(val);
+            else showToast('Enter ID');
+        }
+    });
+
+    // Listen to hash changes (back/forward, manual URL edits)
+    window.addEventListener('hashchange', () => {
+        const certid = getCertIdFromURL();
+        if (certid) {
+            loadCertificate(certid);
+        } else {
+            showState('landing');
+        }
+    });
 
     document.getElementById('currentYear').textContent = new Date().getFullYear();
-    const initialId = getCertIdFromURL();
-    initialId ? loadCertificate(initialId) : showState('landing');
+
+    // Initial load: only look at hash
+    const initialCertId = getCertIdFromURL();
+    if (initialCertId) {
+        loadCertificate(initialCertId);
+    } else {
+        showState('landing');
+    }
 })();
