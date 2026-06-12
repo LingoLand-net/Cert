@@ -25,7 +25,6 @@
     const pdfIssueDate = document.getElementById('pdfIssueDate');
     const pdfIssuer = document.getElementById('pdfIssuer');
 
-    // Inline loader element
     const inlineLoader = document.getElementById('inlineOcrLoader');
 
     function showInlineLoader() {
@@ -65,7 +64,7 @@
         }
     }
 
-    function showToast(msg, dur = 3000) {
+    function showToast(msg, dur = 2000) {
         toast.textContent = msg;
         toast.classList.add('show');
         clearTimeout(toast._timeout);
@@ -74,13 +73,13 @@
 
     function copyVerificationLink() {
         navigator.clipboard.writeText(window.location.href)
-            .then(() => showToast('✅ Verification link copied!'))
+            .then(() => showToast('✅ Link copied!'))
             .catch(() => showToast('⚠️ Copy manually'));
     }
 
     async function loadTesseract() {
         if (window.Tesseract) return window.Tesseract;
-        showToast('Getting student report (may take a few seconds)...', 5000);
+        showToast('Loading OCR engine...', 3000);
         await new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
@@ -106,7 +105,7 @@
 
     async function extractWithOCR(pdfUrl) {
         const Tesseract = await loadTesseract();
-        showToast('Gathering certificate information (may take 5–10 seconds)...', 5000);
+        showToast('Reading certificate...', 2000);
         showInlineLoader();
         try {
             const canvas = await pdfPageToCanvas(pdfUrl);
@@ -114,7 +113,8 @@
                 logger: m => console.log(m)
             });
             console.log('OCR extracted text:', text);
-            return parseMetadataFromText(text);
+            const cleaned = text.replace(/BL\+/gi, 'B1+').replace(/BL/gi, 'B1');
+            return parseMetadataFromText(cleaned);
         } finally {
             hideInlineLoader();
         }
@@ -133,7 +133,11 @@
         let level = '—';
         let levelMatch = fullText.match(/level\s+([A-Za-z0-9\/\+]+)/i);
         if (!levelMatch) levelMatch = fullText.match(/\b([ABC][12](?:\+|\/[ABC][12])?)\b/i);
-        if (levelMatch) level = levelMatch[1].toUpperCase();
+        if (levelMatch) {
+            let rawLevel = levelMatch[1].toUpperCase();
+            rawLevel = rawLevel.replace(/BL\+/g, 'B1+').replace(/BL/g, 'B1');
+            level = rawLevel;
+        }
 
         let issuer = 'Lingo‑Ville Language Centre';
         let issuerMatch = fullText.match(/(Mr|Ms|Mrs)\.\s+([A-Za-z\s]+?)(?=\s+English|\s+Teacher|\s+Director|$)/i);
@@ -180,6 +184,77 @@
             return false;
         }
     }
+
+    // ========== SIMPLE, RELIABLE CANVAS RENDERER ==========
+    async function renderPdfToCanvas(pdfUrl, container) {
+        // Clear container
+        while (container.firstChild) container.removeChild(container.firstChild);
+
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.style.width = '100%';
+        wrapper.style.height = '100%';
+        wrapper.style.overflow = 'auto';
+        wrapper.style.backgroundColor = '#e2e8f0';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.padding = '1rem';
+        wrapper.style.boxSizing = 'border-box';
+        container.appendChild(wrapper);
+
+        // Load PDF
+        const loadingTask = pdfjsLib.getDocument(pdfUrl);
+        const pdf = await loadingTask.promise;
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            
+            // Get container width after wrapper is in DOM
+            const containerWidth = wrapper.clientWidth - 32; // padding
+            // Calculate scale to fit width (max scale 1.5 to avoid huge memory)
+            const scale = Math.min(containerWidth / page.getViewport({ scale: 1 }).width, 1.5);
+            const viewport = page.getViewport({ scale: scale });
+            
+            const canvas = document.createElement('canvas');
+            canvas.style.display = 'block';
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            canvas.style.marginBottom = '1rem';
+            canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            const context = canvas.getContext('2d');
+            await page.render({ canvasContext: context, viewport }).promise;
+            wrapper.appendChild(canvas);
+        }
+    }
+
+    async function loadPdfPreview(pdfUrl, container, loadingEl) {
+        if (loadingEl) loadingEl.style.display = 'flex';
+        try {
+            await renderPdfToCanvas(pdfUrl, container);
+            console.log('PDF rendered successfully');
+        } catch (err) {
+            console.error('Canvas render failed:', err);
+            // Fallback to iframe
+            showIframeFallback(container, pdfUrl);
+        } finally {
+            if (loadingEl) loadingEl.style.display = 'none';
+        }
+    }
+
+    function showIframeFallback(container, pdfUrl) {
+        const iframe = document.createElement('iframe');
+        iframe.src = pdfUrl;
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        container.appendChild(iframe);
+        showToast('Using fallback viewer', 2000);
+    }
+    // =====================================================
 
     async function loadCertificate(certid) {
         const normalizedId = certid.trim().toLowerCase();
@@ -238,41 +313,9 @@
         hideInlineLoader();
         if (certGrid) certGrid.style.display = '';
 
+        // Load PDF preview AFTER metadata (so container is ready)
         loadPdfPreview(certPdfUrl, certPdfContainer, pdfLoading);
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function loadPdfPreview(pdfUrl, container, loadingEl) {
-        const existing = container.querySelector('iframe, embed');
-        if (existing) existing.remove();
-        if (loadingEl) loadingEl.style.display = 'flex';
-        const iframe = document.createElement('iframe');
-        iframe.src = pdfUrl + '#view=FitH&toolbar=0&navpanes=0';
-        iframe.title = 'Certificate Preview';
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.style.border = 'none';
-        iframe.style.opacity = '0';
-        iframe.onload = () => {
-            if (loadingEl) loadingEl.style.display = 'none';
-            iframe.style.opacity = '1';
-        };
-        iframe.onerror = () => {
-            if (loadingEl) loadingEl.style.display = 'none';
-            showPdfFallback(container, pdfUrl);
-        };
-        container.appendChild(iframe);
-    }
-
-    function showPdfFallback(container, pdfUrl) {
-        const existing = container.querySelector('iframe, embed');
-        if (existing) existing.remove();
-        const fallback = document.createElement('div');
-        fallback.className = 'absolute inset-0 flex flex-col items-center justify-center bg-slate-50 p-6 text-center';
-        fallback.innerHTML = `<svg class="w-14 h-14 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><p class="text-sm font-medium text-slate-500 mb-2">Preview unavailable</p><a href="${pdfUrl}" download class="px-4 py-2 bg-teal text-white rounded-lg">Download PDF</a>`;
-        container.appendChild(fallback);
-        const loadingSpinner = document.getElementById('pdfLoading');
-        if (loadingSpinner) loadingSpinner.style.display = 'none';
     }
 
     function showError(msg) {
@@ -305,7 +348,7 @@
     searchBtn.addEventListener('click', () => {
         const val = certIdInput.value.trim();
         if (val) navigateToCertId(val);
-        else showToast('Enter a certificate ID');
+        else showToast('Enter ID');
     });
     certIdInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
