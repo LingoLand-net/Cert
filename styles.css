@@ -6,11 +6,21 @@
     --orange2: #ff7428;
 }
 
+/* Make body a flex column to push footer down */
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     font-family: 'Nunito', system-ui, sans-serif;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    min-height: 100vh;
+    margin: 0;
 }
+
+/* Main content grows to fill space */
+main {
+    flex: 1;
+}
+
 header {
     background-color: var(--teal);
     color: white;
@@ -29,15 +39,18 @@ header {
     position: relative;
 }
 .pdf-viewer iframe, .pdf-viewer embed { width: 100%; height: 100%; border: none; }
+
 footer {
-	background-color: #11504B;
-	color: white;
-	padding: 20px;
-	text-align: center;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
+    background-color: #11504B;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: auto;  /* pushes footer to bottom */
 }
+
 /* Ensure the badge pulse animation still works */
 .verified-badge-pulse {
     animation: verifiedPulse 2.5s ease-in-out infinite;
@@ -46,18 +59,13 @@ footer {
     0%, 100% { box-shadow: 0 0 0 0 rgba(0,171,165,0.4); }
     50% { box-shadow: 0 0 0 14px rgba(0,171,165,0); }
 }
+
 .shimmer {
     background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
     background-size: 200% 100%;
     animation: shimmer 1.8s infinite;
 }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-@keyframes verifiedPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,171,165,0.4); }
-    50% { box-shadow: 0 0 0 14px rgba(0,171,165,0); }
-}
-.verified-badge-pulse { animation: verifiedPulse 2.5s ease-in-out infinite; }
 
 .toast {
     position: fixed;
@@ -75,76 +83,16 @@ footer {
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
 
-.loader-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  transition: opacity 0.3s ease;
-  opacity: 0;
-  visibility: hidden;
-}
-.loader-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-.loader-overlay p {
-  margin-top: 20px;
-  color: white;
-  font-weight: 600;
-  font-size: 1rem;
-  text-shadow: 0 1px 2px black;
-}
-
-.loader {
-  width: 175px;
-  height: 80px;
-  display: block;
-  margin: auto;
-  background-image: linear-gradient(#263238 50px, transparent 0), radial-gradient(circle 25px at 25px 25px, #FFF 100%, transparent 0), radial-gradient(circle 50px at 50px 50px, #FFF 100%, transparent 0), radial-gradient(circle 25px at 25px 25px, #FFF 100%, transparent 0), linear-gradient(#FFF 50px, transparent 0);
-  background-size: 64px 6px, 50px 50px, 100px 76px, 50px 50px, 120px 40px;
-  background-position: 55px 60px, 0px 30px, 37px 0px, 122px 30px, 25px 40px;
-  background-repeat: no-repeat;
-  position: relative;
-  box-sizing: border-box;
-}
-.loader::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%) rotate(-180deg);
-  top: 62px;
-  height: 64px;
-  width: 60px;
-  background-color: #FFF;
-  background-image: linear-gradient(#DDD 20px, transparent 0), linear-gradient(#DDD 5px, transparent 0), linear-gradient(#DDD 10px, transparent 0), linear-gradient(#DDD 10px, transparent 0);
-  background-size: 50px 20px;
-  background-position: 5px 36px, 5px 25px, 5px 10px;
-  background-repeat: no-repeat;
-  border-radius: 2px 2px 4px 4px;
-  z-index: 10;
-  box-shadow: 0px -4px 7px rgba(0, 0, 0, 0.5);
-  box-sizing: border-box;
-  animation: animloader 4s linear infinite;
-}
+/* Full‑height inline loader – fills remaining space, no background/shadows */
 .inline-loader {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    flex: 1;
+    min-height: 50vh;
     padding: 2rem;
-    background: white;
-    border-radius: 1rem;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.05);
-    margin: 1rem 0;
+    margin: 0;
     text-align: center;
 }
 .inline-loader.hidden {
@@ -156,15 +104,48 @@ footer {
     font-weight: 600;
 }
 
-@keyframes animloader {
-  0% {
-    height: 64px;
-  }
-  90%, 100% {
-    height: 0px;
-  }
+/* Loader spinner (unchanged, but colors updated to orange) */
+.loader {
+    width: 175px;
+    height: 80px;
+    display: block;
+    margin: auto;
+    background-image: linear-gradient(#263238 50px, transparent 0), radial-gradient(circle 25px at 25px 25px, #F8A233 100%, transparent 0), radial-gradient(circle 50px at 50px 50px, #F8A233 100%, transparent 0), radial-gradient(circle 25px at 25px 25px, #F8A233 100%, transparent 0), linear-gradient(#F8A233 50px, transparent 0);
+    background-size: 64px 6px, 50px 50px, 100px 76px, 50px 50px, 120px 40px;
+    background-position: 55px 60px, 0px 30px, 37px 0px, 122px 30px, 25px 40px;
+    background-repeat: no-repeat;
+    position: relative;
+    box-sizing: border-box;
 }
-@media (max-width: 768px) { .pdf-viewer { aspect-ratio: 4/3; max-height: 55vh; } }
+.loader::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%) rotate(-180deg);
+    top: 62px;
+    height: 64px;
+    width: 60px;
+    background-color: #FFF;
+    background-image: linear-gradient(#F8A233 20px, transparent 0), linear-gradient(#F8A233 5px, transparent 0), linear-gradient(#F8A233 10px, transparent 0), linear-gradient(#F8A233 10px, transparent 0);
+    background-size: 50px 20px;
+    background-position: 5px 36px, 5px 25px, 5px 10px;
+    background-repeat: no-repeat;
+    border-radius: 2px 2px 4px 4px;
+    z-index: 10;
+    box-shadow: 0px -4px 7px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    animation: animloader 4s linear infinite;
+}
+
+@keyframes animloader {
+    0% { height: 64px; }
+    90%, 100% { height: 0px; }
+}
+
+@media (max-width: 768px) { 
+    .pdf-viewer { aspect-ratio: 4/3; max-height: 55vh; } 
+}
+
 @media print {
     body { background: white; }
     nav, footer, .no-print, .toast, button, a[download] { display: none !important; }

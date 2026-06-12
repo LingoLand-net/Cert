@@ -106,7 +106,7 @@
 
     async function extractWithOCR(pdfUrl) {
         const Tesseract = await loadTesseract();
-        showToast('Gathering certificate information (may take 5–10 seconds)...', 8000);
+        showToast('Gathering certificate information (may take 5–10 seconds)...', 5000);
         showInlineLoader();
         try {
             const canvas = await pdfPageToCanvas(pdfUrl);
