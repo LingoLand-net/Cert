@@ -1,0 +1,83 @@
+:root {
+    --teal: #00aba5;
+    --teal-d: #0f3d3f;
+    --teal-bg: #11504b;
+    --orange: #F8A233;
+    --orange2: #ff7428;
+}
+
+body {
+    font-family: 'Nunito', system-ui, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    min-height: 100vh;
+}
+header {
+    background-color: var(--teal);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.pdf-viewer {
+    width: 100%;
+    aspect-ratio: 16 / 11;
+    max-height: 70vh;
+    background: #f1f5f9;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    position: relative;
+}
+.pdf-viewer iframe, .pdf-viewer embed { width: 100%; height: 100%; border: none; }
+footer {
+	background-color: #11504B;
+	color: white;
+	padding: 20px;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+/* Ensure the badge pulse animation still works */
+.verified-badge-pulse {
+    animation: verifiedPulse 2.5s ease-in-out infinite;
+}
+@keyframes verifiedPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,171,165,0.4); }
+    50% { box-shadow: 0 0 0 14px rgba(0,171,165,0); }
+}
+.shimmer {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+@keyframes verifiedPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,171,165,0.4); }
+    50% { box-shadow: 0 0 0 14px rgba(0,171,165,0); }
+}
+.verified-badge-pulse { animation: verifiedPulse 2.5s ease-in-out infinite; }
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    background: #0f172a;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-weight: 600;
+    z-index: 9999;
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 768px) { .pdf-viewer { aspect-ratio: 4/3; max-height: 55vh; } }
+@media print {
+    body { background: white; }
+    nav, footer, .no-print, .toast, button, a[download] { display: none !important; }
+    .pdf-viewer { box-shadow: none; border: 1px solid #cbd5e1; max-height: none; }
+}
