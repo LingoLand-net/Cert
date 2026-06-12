@@ -73,7 +73,7 @@
     // Load Tesseract dynamically (only once)
     async function loadTesseract() {
         if (window.Tesseract) return window.Tesseract;
-        showToast('Loading OCR engine (first time only, may take a few seconds)...', 5000);
+        showToast('Getting student report (May take a few seconds)...', 5000);
         await new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
@@ -101,7 +101,7 @@
     // Extract metadata using OCR (on canvas)
     async function extractWithOCR(pdfUrl) {
         const Tesseract = await loadTesseract();
-        showToast('Running OCR on certificate (may take 5–10 seconds)...', 8000);
+        showToast('Gathering certificate information (may take 5–10 seconds)...', 8000);
         showOcrLoader();
         try {
             const canvas = await pdfPageToCanvas(pdfUrl);
