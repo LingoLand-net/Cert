@@ -25,14 +25,19 @@
     const pdfIssueDate = document.getElementById('pdfIssueDate');
     const pdfIssuer = document.getElementById('pdfIssuer');
 
-    /**
-     * Get certificate ID only from URL hash (#/certid)
-     */
+    const ocrOverlay = document.getElementById('ocrOverlay');
+
+    function showOcrLoader() {
+        if (ocrOverlay) ocrOverlay.classList.add('active');
+    }
+
+    function hideOcrLoader() {
+        if (ocrOverlay) ocrOverlay.classList.remove('active');
+    }
+
     function getCertIdFromURL() {
         const hash = window.location.hash.replace(/^#\/?/, '');
-        if (hash && hash !== 'index.html' && hash !== '') {
-            return hash.toLowerCase();
-        }
+        if (hash && hash !== 'index.html' && hash !== '') return hash.toLowerCase();
         return null;
     }
 
@@ -43,9 +48,7 @@
         if (state === 'landing') {
             landingState.classList.remove('hidden');
             document.title = 'Certificate Verification — Lingo-Ville';
-            if (window.location.hash) {
-                window.history.replaceState({}, '', window.location.pathname);
-            }
+            if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
         } else if (state === 'certificate') {
             certificateState.classList.remove('hidden');
         } else if (state === 'error') {
@@ -54,7 +57,7 @@
         }
     }
 
-    function showToast(msg, dur = 2500) {
+    function showToast(msg, dur = 3000) {
         toast.textContent = msg;
         toast.classList.add('show');
         clearTimeout(toast._timeout);
@@ -67,64 +70,105 @@
             .catch(() => showToast('⚠️ Copy manually'));
     }
 
-    /**
-     * Robust PDF metadata extraction from first page text.
-     * Returns object with issueDate, course, level, issuer.
-     */
-    async function extractPdfMetadata(pdfUrl) {
+    // Load Tesseract dynamically (only once)
+    async function loadTesseract() {
+        if (window.Tesseract) return window.Tesseract;
+        showToast('Loading OCR engine (first time only, may take a few seconds)...', 5000);
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+        return window.Tesseract;
+    }
+
+    // Render first page of PDF to canvas for OCR
+    async function pdfPageToCanvas(pdfUrl) {
+        const loadingTask = pdfjsLib.getDocument(pdfUrl);
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: context, viewport }).promise;
+        return canvas;
+    }
+
+    // Extract metadata using OCR (on canvas)
+    async function extractWithOCR(pdfUrl) {
+        const Tesseract = await loadTesseract();
+        showToast('Running OCR on certificate (may take 5–10 seconds)...', 8000);
+        showOcrLoader();
         try {
-            const loadingTask = pdfjsLib.getDocument(pdfUrl);
-            const pdf = await loadingTask.promise;
-            const page = await pdf.getPage(1);
-            const textContent = await page.getTextContent();
-            const fullText = textContent.items.map(item => item.str).join(' ');
-
-            // ----- ISSUE DATE -----
-            let issueDate = '—';
-            // Look for "Awarded on" pattern (flexible spacing)
-            let dateMatch = fullText.match(/Awarded\s+on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
-            if (!dateMatch) {
-                dateMatch = fullText.match(/(?:Date|Issued):\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})/i);
-            }
-            if (dateMatch) issueDate = dateMatch[1].replace(/,(\S)/, ', $1'); // normalize
-
-            // ----- COURSE NAME -----
-            let course = '—';
-            const courseMatch = fullText.match(/completed\s+the\s+([A-Za-z\s&]+?)\s+course/i) ||
-                                fullText.match(/course\s+([A-Za-z\s&]+?)(?=\s+level|\s+\(|$)/i);
-            if (courseMatch) course = courseMatch[1].trim();
-
-            // ----- LEVEL -----
-            let level = '—';
-            // Look for "Level B1/B1+" or similar
-            let levelMatch = fullText.match(/level\s+([A-Za-z0-9\/\+]+)/i);
-            if (!levelMatch) {
-                levelMatch = fullText.match(/\b([ABC][12](?:\+|\/[ABC][12])?)\b/i);
-            }
-            if (levelMatch) level = levelMatch[1].toUpperCase();
-
-            // ----- ISSUER (Professor name) -----
-            let issuer = 'Lingo‑Ville Language Centre';
-            // Try to extract "Mr. Bessem Mbarek" (supports Mr/Mrs/Ms, stops before "English" or "Teacher" or "Director")
-            const issuerMatch = fullText.match(/(Mr|Ms|Mrs)\.\s+([A-Za-z\s]+?)(?=\s+English|\s+Teacher|\s+Director|$)/i);
-            if (issuerMatch) {
-                issuer = `${issuerMatch[1]}. ${issuerMatch[2].trim()}`;
-            } else {
-                // Fallback: look for the name after "Teacher & Managing Director of"
-                const fallbackMatch = fullText.match(/Managing\s+Director\s+of\s+([A-Za-z\s]+?)(?:\.|$)/i);
-                if (fallbackMatch) issuer = fallbackMatch[1].trim();
-            }
-
-            return { issueDate, course, level, issuer };
-        } catch (err) {
-            console.warn('PDF extraction failed', err);
-            return null;
+            const canvas = await pdfPageToCanvas(pdfUrl);
+            const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+                logger: m => console.log(m)
+            });
+            console.log('OCR extracted text:', text);
+            return parseMetadataFromText(text);
+        } finally {
+            hideOcrLoader();
         }
     }
 
-    /**
-     * Check if a PDF exists (via HEAD request) before attempting to load.
-     */
+    // Parse metadata from plain text (same patterns used for PDF text)
+    function parseMetadataFromText(fullText) {
+        let issueDate = '—';
+        let dateMatch = fullText.match(/Awarded\s+on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
+        if (!dateMatch) dateMatch = fullText.match(/([A-Za-z]+\s+\d{1,2},?\s+\d{4})/);
+        if (dateMatch) issueDate = dateMatch[1].replace(/,(\S)/, ', $1');
+
+        let course = '—';
+        let courseMatch = fullText.match(/completed\s+the\s+([A-Za-z\s&]+?)\s+course/i);
+        if (courseMatch) course = courseMatch[1].trim();
+
+        let level = '—';
+        let levelMatch = fullText.match(/level\s+([A-Za-z0-9\/\+]+)/i);
+        if (!levelMatch) levelMatch = fullText.match(/\b([ABC][12](?:\+|\/[ABC][12])?)\b/i);
+        if (levelMatch) level = levelMatch[1].toUpperCase();
+
+        let issuer = 'Lingo‑Ville Language Centre';
+        let issuerMatch = fullText.match(/(Mr|Ms|Mrs)\.\s+([A-Za-z\s]+?)(?=\s+English|\s+Teacher|\s+Director|$)/i);
+        if (issuerMatch) issuer = `${issuerMatch[1]}. ${issuerMatch[2].trim()}`;
+
+        return { issueDate, course, level, issuer };
+    }
+
+    // Try PDF text extraction (normal method)
+    async function extractPdfText(pdfUrl) {
+        try {
+            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            const pdf = await loadingTask.promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent({ normalizeWhitespace: true });
+                fullText += textContent.items.map(item => item.str).join(' ');
+            }
+            return fullText.trim();
+        } catch (err) {
+            console.warn('PDF text extraction error:', err);
+            return '';
+        }
+    }
+
+    async function extractPdfMetadata(pdfUrl, forceOCR = false) {
+        let fullText = '';
+        if (!forceOCR) {
+            fullText = await extractPdfText(pdfUrl);
+            console.log('PDF text length:', fullText.length);
+        }
+        if (fullText.length === 0 || forceOCR) {
+            console.log('No selectable text – falling back to OCR.');
+            return await extractWithOCR(pdfUrl);
+        }
+        return parseMetadataFromText(fullText);
+    }
+
     async function pdfExists(url) {
         try {
             const response = await fetch(url, { method: 'HEAD' });
@@ -136,15 +180,13 @@
 
     async function loadCertificate(certid) {
         const normalizedId = certid.trim().toLowerCase();
-        // Allow letters, digits, hyphens – more flexible but still safe
         if (!/^[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$/i.test(normalizedId)) {
-            showError('Invalid certificate ID format. Expected format like encom-26ma1-b1');
+            showError('Invalid certificate ID format. Use format like encom-26ma1-b1');
             return;
         }
 
         document.title = `Certificate ${normalizedId} | Lingo-Ville Verification`;
 
-        // Ensure hash matches
         const currentHash = window.location.hash.replace(/^#\/?/, '');
         if (currentHash !== normalizedId) {
             window.location.hash = '#/' + normalizedId;
@@ -154,39 +196,37 @@
         const certPdfUrl = CERTS_PATH + normalizedId + '.pdf';
         const reportPdfUrl = CERTS_PATH + 'rep-' + normalizedId + '.pdf';
 
-        // Check if the certificate PDF actually exists
         const certExists = await pdfExists(certPdfUrl);
         if (!certExists) {
-            showError(`Certificate "${normalizedId}" not found. Please check the ID and try again.`);
+            showError(`Certificate "${normalizedId}" not found.`);
             return;
         }
 
-        // Update UI
         certIdDisplay.textContent = normalizedId;
         certPdfLabel.textContent = normalizedId + '.pdf';
         reportPdfLabel.textContent = 'rep-' + normalizedId + '.pdf';
-
         certDownloadBtn.href = certPdfUrl;
         certDownloadBtn.setAttribute('download', normalizedId + '.pdf');
         reportDownloadBtn.href = reportPdfUrl;
         reportDownloadBtn.setAttribute('download', 'rep-' + normalizedId + '.pdf');
 
-        // Reset metadata placeholders
+        // Reset
         pdfCourseName.textContent = '—';
         pdfLevel.textContent = '—';
         pdfIssueDate.textContent = '—';
         pdfIssuer.textContent = 'Lingo‑Ville Language Centre';
 
-        // Extract and display metadata
+        // Try extraction (will auto-fallback to OCR if no text)
         const metadata = await extractPdfMetadata(certPdfUrl);
         if (metadata) {
             if (metadata.course !== '—') pdfCourseName.textContent = metadata.course;
             if (metadata.level !== '—') pdfLevel.textContent = metadata.level;
             if (metadata.issueDate !== '—') pdfIssueDate.textContent = metadata.issueDate;
             if (metadata.issuer) pdfIssuer.textContent = metadata.issuer;
-        } else {
-            // Still show the certificate, but metadata extraction failed (maybe text is weird)
-            console.warn('Could not extract metadata, using defaults');
+        }
+
+        if (pdfIssueDate.textContent === '—') {
+            console.warn(`Could not extract date even with OCR for ${normalizedId}.`);
         }
 
         loadPdfPreview(certPdfUrl, certPdfContainer, pdfLoading);
@@ -198,7 +238,6 @@
         const existing = container.querySelector('iframe, embed');
         if (existing) existing.remove();
         if (loadingEl) loadingEl.style.display = 'flex';
-
         const iframe = document.createElement('iframe');
         iframe.src = pdfUrl + '#view=FitH&toolbar=0&navpanes=0';
         iframe.title = 'Certificate Preview';
@@ -229,15 +268,13 @@
     }
 
     function showError(msg) {
-        errorMessageEl.textContent = msg || 'Certificate ID not found or invalid.';
+        errorMessageEl.textContent = msg || 'Certificate not found.';
         showState('error');
     }
 
     function navigateToCertId(certid) {
         if (!certid?.trim()) {
-            if (window.location.hash) {
-                window.history.replaceState({}, '', window.location.pathname);
-            }
+            if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
             showState('landing');
             return;
         }
@@ -247,17 +284,13 @@
     // Event listeners
     copyLinkBtn.addEventListener('click', copyVerificationLink);
     backBtn.addEventListener('click', () => {
-        if (window.location.hash) {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
+        if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
         showState('landing');
         certIdInput.value = '';
         certIdInput.focus();
     });
     errorBackBtn.addEventListener('click', () => {
-        if (window.location.hash) {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
+        if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
         showState('landing');
         certIdInput.value = '';
         certIdInput.focus();
@@ -278,20 +311,13 @@
 
     window.addEventListener('hashchange', () => {
         const certid = getCertIdFromURL();
-        if (certid) {
-            loadCertificate(certid);
-        } else {
-            showState('landing');
-        }
+        if (certid) loadCertificate(certid);
+        else showState('landing');
     });
 
     document.getElementById('currentYear').textContent = new Date().getFullYear();
 
-    // Initial load
     const initialCertId = getCertIdFromURL();
-    if (initialCertId) {
-        loadCertificate(initialCertId);
-    } else {
-        showState('landing');
-    }
+    if (initialCertId) loadCertificate(initialCertId);
+    else showState('landing');
 })();
