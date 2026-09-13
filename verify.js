@@ -37,6 +37,15 @@
     } catch (_) { return String(d); }
   }
 
+  function showToast(message, duration = 2400) {
+    const t = $('toast');
+    if (!t) return;
+    t.textContent = message;
+    t.classList.add('show');
+    clearTimeout(t._to);
+    t._to = setTimeout(() => t.classList.remove('show'), duration);
+  }
+
   // ---------- Hash routing ----------
   function parseHash() {
     const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
@@ -44,7 +53,6 @@
   }
 
   function setHash(certId) {
-    // Preserve base URL, just change the hash
     const next = `#/${encodeURIComponent(certId)}`;
     if (window.location.hash !== next) {
       window.history.pushState(null, '', next);
@@ -68,9 +76,11 @@
     return json.data;
   }
 
-  // ---------- PDF rendering ----------
+   // ---------- PDF rendering ----------
   async function renderPdf(container, url) {
     container.innerHTML = '';
+
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
     // Try PDF.js first
     try {
@@ -79,7 +89,11 @@
       const buf = await res.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 
-      for (let i = 1; i <= pdf.numPages; i++) {
+      // On mobile: render only the first page as a preview.
+      // On desktop: render all pages inline.
+      const pagesToRender = isMobile ? 1 : pdf.numPages;
+
+      for (let i = 1; i <= pagesToRender; i++) {
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 2 });
         const canvas = document.createElement('canvas');
@@ -89,23 +103,57 @@
         container.appendChild(canvas);
         await page.render({ canvasContext: ctx, viewport }).promise;
       }
+
+      // On mobile: wrap the preview in a tap-to-open link
+      if (isMobile) {
+        const canvas = container.querySelector('canvas');
+        if (canvas) {
+          const wrapper = document.createElement('a');
+          wrapper.href = url;
+          wrapper.target = '_blank';
+          wrapper.rel = 'noopener';
+          wrapper.className = 'block relative cursor-pointer';
+
+          // Move canvas inside the wrapper
+          container.removeChild(canvas);
+          wrapper.appendChild(canvas);
+
+          // Persistent "Tap to open" pill in the top-right corner
+          const pill = document.createElement('div');
+          pill.className = 'absolute top-3 right-3 bg-white/95 text-slate-800 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg pointer-events-none';
+          pill.innerHTML = `
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Tap to open
+          `;
+          wrapper.appendChild(pill);
+          container.appendChild(wrapper);
+
+          // Hint below the preview
+          const hint = document.createElement('p');
+          hint.className = 'text-xs text-slate-400 text-center mt-3';
+          hint.textContent = 'Opens in your device PDF viewer';
+          container.appendChild(hint);
+        }
+      }
       return;
     } catch (err) {
-      console.warn('PDF.js failed, falling back to iframe:', err);
+      console.warn('PDF.js failed, falling back to direct link:', err);
     }
 
-    // Fallback: iframe + download link
+    // Fallback (both mobile + desktop): direct link, opens in a new tab
     container.innerHTML = `
-      <iframe src="${escapeHtml(url)}#toolbar=1&navpanes=0"
-              class="w-full rounded-lg border border-slate-200 bg-white"
-              style="height: min(80vh, 800px);"></iframe>
-      <p class="text-xs text-slate-400 text-center mt-3">
-        Can't see the PDF?
-        <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="text-teal-700 underline">Open in a new tab</a>.
-      </p>
+      <a href="${escapeHtml(url)}" target="_blank" rel="noopener"
+         class="block w-full py-10 rounded-lg border-2 border-dashed border-slate-300 bg-white hover:border-teal-400 hover:bg-teal-50/40 transition text-center">
+        <svg class="w-12 h-12 text-teal mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p class="text-sm font-bold text-slate-700">Open Certificate</p>
+        <p class="text-xs text-slate-400 mt-1">Opens in a new tab</p>
+      </a>
     `;
   }
-
   // ---------- Render states ----------
   function renderStatusBanner(status) {
     const el = $('statusBanner');
@@ -217,6 +265,56 @@
     }
   }
 
+  // ---------- Sharing ----------
+  function getShareUrl() {
+    return window.location.href;
+  }
+
+  async function shareInstagramStory() {
+    const url = getShareUrl();
+
+    // Mobile: OS share sheet → user picks Instagram → Story camera opens with link sticker
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Lingo‑Ville Certificate',
+          text: 'I just got certified by Lingo‑Ville 🎓',
+          url: url
+        });
+        return;
+      } catch (err) {
+        // user cancelled — silently return
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+
+    // Desktop / unsupported: toast hint
+    showToast('Open this page on your phone to post to Instagram Story');
+  }
+
+  function shareLinkedIn() {
+    const url = encodeURIComponent(getShareUrl());
+    const share = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+    window.open(share, '_blank', 'noopener,width=620,height=620');
+  }
+
+  async function shareCopyLink() {
+    const url = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Verification link copied');
+    } catch (_) {
+      // Very old browsers: fall back to a prompt
+      window.prompt('Copy this link:', url);
+    }
+  }
+
+  function wireShareButtons() {
+    $('shareInstagramBtn')?.addEventListener('click', shareInstagramStory);
+    $('shareLinkedinBtn')?.addEventListener('click', shareLinkedIn);
+    $('shareLinkBtn')?.addEventListener('click', shareCopyLink);
+  }
+
   // ---------- Events ----------
   $('searchForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -249,5 +347,6 @@
   const initial = parseHash();
   if (initial) $('certInput').value = initial;
 
+  wireShareButtons();
   handleRoute();
 })();

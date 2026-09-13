@@ -3,46 +3,317 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Lingo‑Ville · Certificate Verification</title>
-  <meta name="description" content="Verify the authenticity of a Lingo‑Ville certificate. Enter the ID printed on the document or scan its QR code." />
+  <title>Lingo‑Ville | Official Certificate & Credential Verification</title>
+  <meta name="description" content="Verify authentic Lingo‑Ville credentials instantly. Secure PDF previews, QR code validation, and digitally signed certificates for employers and institutions." />
+  <meta name="keywords" content="Lingo-Ville, certificate verification, verify credential, language certificate, digital credential, academic validation, QR code verification" />
   <meta name="robots" content="index, follow" />
+  <meta name="author" content="Lingo‑Ville Language Centre" />
   <meta name="theme-color" content="#00aba5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Lingo‑Ville Verify" />
   <link rel="canonical" href="https://cert.lingo-ville.com/" />
 
+  <!-- ===== OPEN GRAPH ===== -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Lingo‑Ville Certificate Verification" />
-  <meta property="og:description" content="Instantly verify a Lingo‑Ville certificate." />
+  <meta property="og:url" content="https://cert.lingo-ville.com/" />
+  <meta property="og:title" content="Lingo‑Ville Official Certificate Verification" />
+  <meta property="og:description" content="Instantly authenticate official Lingo‑Ville credentials. Scan the QR code or enter the certificate ID to validate." />
   <meta property="og:image" content="https://cert.lingo-ville.com/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Lingo‑Ville certificate verification preview" />
+  <meta property="og:site_name" content="Lingo‑Ville" />
+  <meta property="og:locale" content="en_US" />
 
+  <!-- ===== TWITTER CARD ===== -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://cert.lingo-ville.com/" />
+  <meta name="twitter:title" content="Lingo‑Ville Official Certificate Verification" />
+  <meta name="twitter:description" content="Instantly authenticate official Lingo‑Ville credentials with QR code or ID lookup." />
+  <meta name="twitter:image" content="https://cert.lingo-ville.com/og-image.png" />
+  <meta name="twitter:image:alt" content="Lingo‑Ville certificate verification preview" />
+
+  <!-- ===== FAVICONS ===== -->
+  <link rel="icon" type="image/png" sizes="32x32" href="logo.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="logo.png" />
+
+  <!-- ===== SCHEMA.ORG STRUCTURED DATA ===== -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Lingo‑Ville Certificate Verification Platform",
+      "url": "https://cert.lingo-ville.com/",
+      "description": "Official online portal to verify and validate certificates issued by Lingo‑Ville Language Centre.",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All",
+      "browserRequirements": "Requires JavaScript and modern browser",
+      "author": {
+        "@type": "Organization",
+        "name": "Lingo‑Ville Language Centre",
+        "url": "https://lingo-ville.com/",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Sfax",
+          "addressCountry": "Tunisia"
+        }
+      }
+    }
+  </script>
+
+  <!-- ===== TAILWIND + FONTS ===== -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: { extend: {
-        colors: {
-          teal: { DEFAULT: '#00aba5', 50: '#e6f7f6', 600: '#008984', 700: '#006762' },
-          orange: { DEFAULT: '#F8A233', 500: '#F8A233', 600: '#e6821f' }
-        },
-        boxShadow: { soft: '0 8px 30px rgba(0,0,0,0.06)' },
-        fontFamily: { nunito: ['Nunito', 'system-ui', 'sans-serif'] }
-      }}
+      theme: {
+        extend: {
+          colors: {
+            teal: { DEFAULT: '#00aba5', 50: '#e6f7f6', 600: '#008984', 700: '#006762' },
+            orange: { DEFAULT: '#F8A233', 500: '#F8A233', 600: '#e6821f' },
+            'orange-deep': '#ff7428'
+          },
+          fontFamily: { nunito: ['Nunito', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            soft: '0 8px 30px rgba(0,0,0,0.06)',
+            'teal-glow': '0 10px 25px -5px rgba(0,171,165,0.3)'
+          }
+        }
+      }
     };
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
+  <!-- ===== PDF.js ===== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
+  <!-- ===== INLINE CSS ===== -->
   <style>
-    body { font-family: 'Nunito', system-ui, sans-serif; }
-    .spinner { width: 40px; height: 40px; border: 3px solid #cbd5e1; border-top-color: #00aba5; border-radius: 50%; animation: spin .8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #pdfViewer canvas { display: block; width: 100% !important; height: auto !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-radius: 8px; margin-bottom: 12px; background: #fff; }
+    :root {
+      --teal: #00aba5;
+      --teal-d: #0f3d3f;
+      --teal-bg: #11504b;
+      --orange: #F8A233;
+      --orange2: #ff7428;
+    }
+
+    /* Body: flex column so footer sits at bottom */
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      font-family: 'Nunito', system-ui, sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      margin: 0;
+    }
+    main { flex: 1; }
+
+    /* ---------- PDF viewer ---------- */
+    .pdf-viewer {
+      width: 100%;
+      aspect-ratio: 16 / 11;
+      max-height: 70vh;
+      background: #f1f5f9;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+      position: relative;
+    }
+    .pdf-viewer iframe,
+    .pdf-viewer embed { width: 100%; height: 100%; border: none; }
+    #pdfViewer canvas {
+      display: block;
+      width: 100% !important;
+      height: auto !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
     #pdfViewer canvas:last-child { margin-bottom: 0; }
+
+    /* ---------- Loader: fancy document loader ---------- */
+    .loader {
+      width: 175px;
+      height: 80px;
+      display: block;
+      margin: auto;
+      background-image:
+        linear-gradient(#263238 50px, transparent 0),
+        radial-gradient(circle 25px at 25px 25px, #F8A233 100%, transparent 0),
+        radial-gradient(circle 50px at 50px 50px, #F8A233 100%, transparent 0),
+        radial-gradient(circle 25px at 25px 25px, #F8A233 100%, transparent 0),
+        linear-gradient(#F8A233 50px, transparent 0);
+      background-size: 64px 6px, 50px 50px, 100px 76px, 50px 50px, 120px 40px;
+      background-position: 55px 60px, 0px 30px, 37px 0px, 122px 30px, 25px 40px;
+      background-repeat: no-repeat;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .loader::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%) rotate(-180deg);
+      top: 62px;
+      height: 64px;
+      width: 60px;
+      background-color: #FFF;
+      background-image:
+        linear-gradient(#F8A233 20px, transparent 0),
+        linear-gradient(#F8A233 5px, transparent 0),
+        linear-gradient(#F8A233 10px, transparent 0),
+        linear-gradient(#F8A233 10px, transparent 0);
+      background-size: 50px 20px;
+      background-position: 5px 36px, 5px 25px, 5px 10px;
+      background-repeat: no-repeat;
+      border-radius: 2px 2px 4px 4px;
+      z-index: 10;
+      box-shadow: 0px -4px 7px rgba(0, 0, 0, 0.5);
+      box-sizing: border-box;
+      animation: animloader 4s linear infinite;
+    }
+    @keyframes animloader {
+      0%   { height: 64px; }
+      90%, 100% { height: 0px; }
+    }
+
+    /* Full-height inline loader wrapper */
+    .inline-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-height: 50vh;
+      padding: 2rem;
+      margin: 0;
+      text-align: center;
+    }
+    .inline-loader.hidden { display: none; }
+    .inline-loader p {
+      margin-top: 1rem;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    /* Small inline spinner (used inside PDF viewer while rendering) */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #cbd5e1;
+      border-top-color: #00aba5;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---------- Shimmer ---------- */
+    .shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ---------- Toast ---------- */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: #0f172a;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-weight: 600;
+      z-index: 9999;
+      transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ---------- Verified badge pulse ---------- */
+    .verified-badge-pulse {
+      animation: verifiedPulse 2.5s ease-in-out infinite;
+    }
+    @keyframes verifiedPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,171,165,0.4); }
+      50%      { box-shadow: 0 0 0 14px rgba(0,171,165,0); }
+    }
+
+    /* ---------- Footer ---------- */
+    footer.site-footer {
+      background-color: #11504B;
+      color: #e2e8f0;
+      padding: 40px 20px 20px;
+      margin-top: auto;
+    }
+    footer.site-footer .footer-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    footer.site-footer .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    @media (min-width: 768px) {
+      footer.site-footer .footer-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    footer.site-footer img { max-width: 96px; height: auto; }
+    footer.site-footer .footer-brand {
+      color: #ffffff;
+      font-size: 1.125rem;
+      font-weight: 800;
+    }
+    footer.site-footer .footer-brand .brand-accent { color: var(--orange); }
+    footer.site-footer h4 {
+      color: #ffffff;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    footer.site-footer ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.875rem;
+    }
+    footer.site-footer ul li { margin-bottom: 0.25rem; }
+    footer.site-footer a { color: inherit; text-decoration: none; transition: color .2s; }
+    footer.site-footer a:hover { color: var(--orange); }
+    footer.site-footer .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.15);
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    /* ---------- Responsive PDF viewer ---------- */
+    @media (max-width: 768px) {
+      .pdf-viewer { aspect-ratio: 4/3; max-height: 55vh; }
+    }
+
+    /* ---------- Print ---------- */
+    @media print {
+      body { background: white; }
+      header, footer, .no-print, .toast, button, a[download] { display: none !important; }
+      .pdf-viewer { box-shadow: none; border: 1px solid #cbd5e1; max-height: none; }
+    }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-800">
+<body class="antialiased text-slate-800">
 
   <!-- ===== HEADER ===== -->
-  <header class="border-b border-teal-100 sticky top-0 z-40" style="background-color:#00aba5">
+  <header class="border-b border-teal-100 sticky top-0 z-40 no-print" style="background-color:#00aba5">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2 group" aria-label="Lingo‑Ville home">
         <img src="logo.png" alt="" class="w-9 h-9 rounded-full bg-white p-0.5" onerror="this.style.display='none'" />
@@ -52,12 +323,12 @@
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 w-full">
 
     <!-- ===== LANDING / SEARCH ===== -->
     <section id="searchState">
       <div class="text-center py-8 sm:py-14">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-teal-50 rounded-2xl mb-5">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-teal-50 rounded-2xl mb-5 shadow-inner">
           <svg class="w-8 h-8 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -72,7 +343,7 @@
                    autocomplete="off" autocapitalize="off" spellcheck="false"
                    class="flex-1 min-w-0 px-5 py-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal focus:border-teal outline-none shadow-sm" />
             <button type="submit"
-                    class="px-6 py-3.5 bg-teal text-white font-bold rounded-xl hover:bg-teal-600 transition shadow-md">
+                    class="px-6 py-3.5 bg-teal text-white font-bold rounded-xl hover:bg-teal-600 transition shadow-md hover:shadow-teal-glow">
               Verify
             </button>
           </div>
@@ -80,11 +351,13 @@
       </div>
     </section>
 
-    <!-- ===== LOADING ===== -->
-    <section id="loadingState" class="hidden text-center py-24">
-      <div class="spinner mx-auto mb-5"></div>
-      <p class="text-slate-500 font-semibold">Looking up certificate…</p>
-      <p class="text-xs text-slate-400 mt-1">Fetching record and rendering PDF</p>
+    <!-- ===== LOADING (fancy loader) ===== -->
+    <section id="loadingState" class="hidden">
+      <div class="inline-loader">
+        <span class="loader"></span>
+        <p>Looking up certificate…</p>
+        <p class="text-xs text-slate-400 mt-1">Fetching record and rendering PDF</p>
+      </div>
     </section>
 
     <!-- ===== RESULT ===== -->
@@ -171,6 +444,39 @@
             </div>
           </div>
 
+          <!-- Share card -->
+          <div class="bg-white rounded-2xl shadow-soft border border-slate-200 p-5">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Share</p>
+            <div class="grid grid-cols-3 gap-2">
+              <button id="shareInstagramBtn" type="button"
+                      class="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 hover:border-pink-400 hover:bg-pink-50 transition text-xs font-semibold text-slate-700">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+                <span>Story</span>
+              </button>
+
+              <button id="shareLinkedinBtn" type="button"
+                      class="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition text-xs font-semibold text-slate-700">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/>
+                </svg>
+                <span>LinkedIn</span>
+              </button>
+
+              <button id="shareLinkBtn" type="button"
+                      class="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50 transition text-xs font-semibold text-slate-700">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <span>Copy</span>
+              </button>
+            </div>
+          </div>
+
           <button id="backBtn"
                   class="w-full px-5 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition text-sm">
             ← Verify another certificate
@@ -197,11 +503,43 @@
 
   </main>
 
-  <footer class="border-t border-slate-100 mt-12">
-    <div class="max-w-5xl mx-auto px-4 py-6 text-center text-sm text-slate-400">
-      © <span id="year"></span> Lingo‑Ville · Verifiable digital credentials
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer no-print">
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div class="flex items-center justify-center md:justify-start">
+          <img src="logo.png" alt="LingoVille Logo" loading="lazy" />
+        </div>
+        <div>
+          <span class="footer-brand">Lingo<span class="brand-accent">Ville</span></span>
+          <p class="text-sm mt-2">Accredited language centre — official certificate issuer.</p>
+        </div>
+        <div>
+          <h4>Content</h4>
+          <ul>
+            <li>Certificate authenticity</li>
+            <li>Student reports</li>
+            <li>Credential validation</li>
+            <li><a href="https://lingo-land.net" target="_blank" rel="noopener">LingoLand Course Books</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Support</h4>
+          <ul>
+            <li><a href="mailto:contact@lingo-ville.com">contact@lingo-ville.com</a></li>
+            <li><a href="tel:+21622571291">+216 22 571 291</a></li>
+            <li>Sfax, Tunisia</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © <span id="year"></span> Lingo‑Ville. All rights reserved.<br />
+        Verifiable digital credentials
+      </div>
     </div>
   </footer>
+
+  <div class="toast" id="toast"></div>
 
   <script src="config.js"></script>
   <script src="verify.js"></script>
