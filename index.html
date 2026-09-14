@@ -14,12 +14,18 @@
   <meta name="apple-mobile-web-app-title" content="Lingo‑Ville Verify" />
   <link rel="canonical" href="https://cert.lingo-ville.com/" />
 
+  <!-- Saves 100–400 ms by warming DNS + TLS before the first fetch. -->
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+  <link rel="dns-prefetch" href="https://script.google.com">
+  <link rel="dns-prefetch" href="https://res.cloudinary.com">
+
   <!-- ===== OPEN GRAPH ===== -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://cert.lingo-ville.com/" />
   <meta property="og:title" content="Lingo‑Ville Official Certificate Verification" />
   <meta property="og:description" content="Instantly authenticate official Lingo‑Ville credentials. Scan the QR code or enter the certificate ID to validate." />
-  <meta property="og:image" content="https://cert.lingo-ville.com/og-image.png" />
+  <meta property="og:image" content="/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Lingo‑Ville certificate verification preview" />
@@ -31,13 +37,13 @@
   <meta name="twitter:url" content="https://cert.lingo-ville.com/" />
   <meta name="twitter:title" content="Lingo‑Ville Official Certificate Verification" />
   <meta name="twitter:description" content="Instantly authenticate official Lingo‑Ville credentials with QR code or ID lookup." />
-  <meta name="twitter:image" content="https://cert.lingo-ville.com/og-image.png" />
+  <meta name="twitter:image" content="/og-image.png" />
   <meta name="twitter:image:alt" content="Lingo‑Ville certificate verification preview" />
 
   <!-- ===== FAVICONS ===== -->
-  <link rel="icon" type="image/png" sizes="32x32" href="logo.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="logo.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="logo.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
 
   <!-- ===== SCHEMA.ORG STRUCTURED DATA ===== -->
   <script type="application/ld+json">

@@ -46,6 +46,37 @@
     t._to = setTimeout(() => t.classList.remove('show'), duration);
   }
 
+  // ---------- Local cache ----------
+  const CERT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  const CERT_CACHE_PREFIX = 'lv_cert_';
+
+  function readCertCache(certId) {
+    try {
+      const raw = localStorage.getItem(CERT_CACHE_PREFIX + certId);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.data || !parsed.at) return null;
+      if (Date.now() - parsed.at > CERT_CACHE_TTL_MS) {
+        localStorage.removeItem(CERT_CACHE_PREFIX + certId);
+        return null;
+      }
+      return parsed.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeCertCache(certId, data) {
+    try {
+      localStorage.setItem(
+        CERT_CACHE_PREFIX + certId,
+        JSON.stringify({ data, at: Date.now() })
+      );
+    } catch (_) {
+      // Storage full or blocked — ignore, this is best-effort
+    }
+  }
+
   // ---------- Hash routing ----------
   function parseHash() {
     const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
@@ -76,11 +107,12 @@
     return json.data;
   }
 
-   // ---------- PDF rendering ----------
+  // ---------- PDF rendering ----------
   async function renderPdf(container, url) {
     container.innerHTML = '';
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const renderScale = isMobile ? 1.25 : 1.5;
 
     // Try PDF.js first
     try {
@@ -95,7 +127,7 @@
 
       for (let i = 1; i <= pagesToRender; i++) {
         const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 2 });
+        const viewport = page.getViewport({ scale: renderScale });
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = viewport.width;
@@ -114,11 +146,9 @@
           wrapper.rel = 'noopener';
           wrapper.className = 'block relative cursor-pointer';
 
-          // Move canvas inside the wrapper
           container.removeChild(canvas);
           wrapper.appendChild(canvas);
 
-          // Persistent "Tap to open" pill in the top-right corner
           const pill = document.createElement('div');
           pill.className = 'absolute top-3 right-3 bg-white/95 text-slate-800 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg pointer-events-none';
           pill.innerHTML = `
@@ -130,7 +160,6 @@
           wrapper.appendChild(pill);
           container.appendChild(wrapper);
 
-          // Hint below the preview
           const hint = document.createElement('p');
           hint.className = 'text-xs text-slate-400 text-center mt-3';
           hint.textContent = 'Opens in your device PDF viewer';
@@ -154,6 +183,7 @@
       </a>
     `;
   }
+
   // ---------- Render states ----------
   function renderStatusBanner(status) {
     const el = $('statusBanner');
@@ -245,13 +275,23 @@
       return;
     }
 
-    // Prevent race conditions if user clicks around quickly
     const myLookup = ++currentLookup;
+
+    // Fast path: render from local cache if fresh.
+    const cached = readCertCache(certId);
+    if (cached) {
+      if (myLookup !== currentLookup) return;
+      renderResult(cached);
+      return;
+    }
+
+    // Slow path: hit the network.
     showOnly('loading');
 
     try {
       const cert = await fetchCert(certId);
-      if (myLookup !== currentLookup) return; // stale
+      if (myLookup !== currentLookup) return;
+      writeCertCache(certId, cert);
       renderResult(cert);
     } catch (err) {
       if (myLookup !== currentLookup) return;
@@ -265,6 +305,21 @@
     }
   }
 
+  // ---------- Prefetch on typing ----------
+  let prefetchTimer = null;
+  const prefetchedIds = new Set();
+
+  function prefetchCert(certId) {
+    if (!certId) return;
+    if (prefetchedIds.has(certId)) return;
+    if (readCertCache(certId)) return; // already cached
+    prefetchedIds.add(certId);
+
+    fetchCert(certId)
+      .then(data => writeCertCache(certId, data))
+      .catch(() => { /* silent — this is best-effort */ });
+  }
+
   // ---------- Sharing ----------
   function getShareUrl() {
     return window.location.href;
@@ -273,7 +328,6 @@
   async function shareInstagramStory() {
     const url = getShareUrl();
 
-    // Mobile: OS share sheet → user picks Instagram → Story camera opens with link sticker
     if (navigator.share) {
       try {
         await navigator.share({
@@ -283,12 +337,10 @@
         });
         return;
       } catch (err) {
-        // user cancelled — silently return
         if (err && err.name === 'AbortError') return;
       }
     }
 
-    // Desktop / unsupported: toast hint
     showToast('Open this page on your phone to post to Instagram Story');
   }
 
@@ -304,7 +356,6 @@
       await navigator.clipboard.writeText(url);
       showToast('Verification link copied');
     } catch (_) {
-      // Very old browsers: fall back to a prompt
       window.prompt('Copy this link:', url);
     }
   }
@@ -321,6 +372,13 @@
     const val = $('certInput').value.trim().toLowerCase();
     if (!val) return;
     setHash(val);
+  });
+
+  $('certInput').addEventListener('input', (e) => {
+    clearTimeout(prefetchTimer);
+    const val = e.target.value.trim().toLowerCase();
+    if (!/^[a-z0-9]+(-[a-z0-9]+){2,4}$/.test(val)) return;
+    prefetchTimer = setTimeout(() => prefetchCert(val), 400);
   });
 
   $('backBtn').addEventListener('click', () => {
@@ -343,7 +401,6 @@
   // ---------- Boot ----------
   $('year').textContent = new Date().getFullYear();
 
-  // If a hash is present on load, prefill the input for context
   const initial = parseHash();
   if (initial) $('certInput').value = initial;
 
