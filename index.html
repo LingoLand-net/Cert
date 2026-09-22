@@ -10,11 +10,11 @@
   <meta name="author" content="Lingo‑Ville Language Centre" />
   <meta name="theme-color" content="#00aba5" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Lingo‑Ville Verify" />
   <link rel="canonical" href="https://cert.lingo-ville.com/" />
 
+  <!-- Saves 100–400 ms by warming DNS + TLS before the first fetch. -->
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -22,6 +22,7 @@
   <link rel="dns-prefetch" href="https://res.cloudinary.com">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
+  <!-- ===== OPEN GRAPH ===== -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://cert.lingo-ville.com/" />
   <meta property="og:title" content="Lingo‑Ville Official Certificate Verification" />
@@ -33,6 +34,7 @@
   <meta property="og:site_name" content="Lingo‑Ville" />
   <meta property="og:locale" content="en_US" />
 
+  <!-- ===== TWITTER CARD ===== -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://cert.lingo-ville.com/" />
   <meta name="twitter:title" content="Lingo‑Ville Official Certificate Verification" />
@@ -40,10 +42,12 @@
   <meta name="twitter:image" content="/og-image.png" />
   <meta name="twitter:image:alt" content="Lingo‑Ville certificate verification preview" />
 
+  <!-- ===== FAVICONS ===== -->
   <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/logo.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
 
+  <!-- ===== SCHEMA.ORG STRUCTURED DATA ===== -->
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -58,11 +62,16 @@
         "@type": "Organization",
         "name": "Lingo‑Ville Language Centre",
         "url": "https://lingo-ville.com/",
-        "address": { "@type": "PostalAddress", "addressLocality": "Sfax", "addressCountry": "Tunisia" }
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Sfax",
+          "addressCountry": "Tunisia"
+        }
       }
     }
   </script>
 
+  <!-- ===== TAILWIND + FONTS ===== -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -84,12 +93,13 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
+  <!-- ===== PDF.js ===== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-  <!-- jsQR — with unpkg fallback -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"
-          onerror="var s=document.createElement('script');s.src='https://unpkg.com/jsqr@1.4.0/dist/jsQR.js';document.head.appendChild(s);"></script>
-
+  <!-- ===== jsQR (QR code scanning) — fallback for browsers without BarcodeDetector ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/jsqr@1.4.0/dist/jsQR.js';document.head.appendChild(s);"></script>
+  
+  <!-- ===== INLINE CSS ===== -->
   <style>
     :root {
       --teal: #00aba5;
@@ -99,6 +109,7 @@
       --orange2: #ff7428;
     }
 
+    /* Body: flex column so footer sits at bottom */
     body {
       display: flex;
       flex-direction: column;
@@ -109,6 +120,7 @@
     }
     main { flex: 1; }
 
+    /* ---------- PDF viewer ---------- */
     .pdf-viewer {
       width: 100%;
       aspect-ratio: 16 / 11;
@@ -119,7 +131,8 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.06);
       position: relative;
     }
-    .pdf-viewer iframe, .pdf-viewer embed { width: 100%; height: 100%; border: none; }
+    .pdf-viewer iframe,
+    .pdf-viewer embed { width: 100%; height: 100%; border: none; }
     #pdfViewer canvas {
       display: block;
       width: 100% !important;
@@ -131,8 +144,12 @@
     }
     #pdfViewer canvas:last-child { margin-bottom: 0; }
 
+    /* ---------- Loader: fancy document loader ---------- */
     .loader {
-      width: 175px; height: 80px; display: block; margin: auto;
+      width: 175px;
+      height: 80px;
+      display: block;
+      margin: auto;
       background-image:
         linear-gradient(#263238 50px, transparent 0),
         radial-gradient(circle 25px at 25px 25px, #F8A233 100%, transparent 0),
@@ -141,11 +158,18 @@
         linear-gradient(#F8A233 50px, transparent 0);
       background-size: 64px 6px, 50px 50px, 100px 76px, 50px 50px, 120px 40px;
       background-position: 55px 60px, 0px 30px, 37px 0px, 122px 30px, 25px 40px;
-      background-repeat: no-repeat; position: relative; box-sizing: border-box;
+      background-repeat: no-repeat;
+      position: relative;
+      box-sizing: border-box;
     }
     .loader::after {
-      content: ''; position: absolute; left: 50%;
-      transform: translateX(-50%) rotate(-180deg); top: 62px; height: 64px; width: 60px;
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%) rotate(-180deg);
+      top: 62px;
+      height: 64px;
+      width: 60px;
       background-color: #FFF;
       background-image:
         linear-gradient(#F8A233 20px, transparent 0),
@@ -156,223 +180,380 @@
       background-position: 5px 36px, 5px 25px, 5px 10px;
       background-repeat: no-repeat;
       border-radius: 2px 2px 4px 4px;
-      z-index: 10; box-shadow: 0px -4px 7px rgba(0, 0, 0, 0.5);
-      box-sizing: border-box; animation: animloader 4s linear infinite;
+      z-index: 10;
+      box-shadow: 0px -4px 7px rgba(0, 0, 0, 0.5);
+      box-sizing: border-box;
+      animation: animloader 4s linear infinite;
     }
-    @keyframes animloader { 0% { height: 64px; } 90%, 100% { height: 0px; } }
+    @keyframes animloader {
+      0%   { height: 64px; }
+      90%, 100% { height: 0px; }
+    }
 
+    /* Full-height inline loader wrapper */
     .inline-loader {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      flex: 1; min-height: 50vh; padding: 2rem; margin: 0; text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-height: 50vh;
+      padding: 2rem;
+      margin: 0;
+      text-align: center;
     }
     .inline-loader.hidden { display: none; }
-    .inline-loader p { margin-top: 1rem; color: #0f172a; font-weight: 600; }
+    .inline-loader p {
+      margin-top: 1rem;
+      color: #0f172a;
+      font-weight: 600;
+    }
 
+    /* Small inline spinner (used inside PDF viewer while rendering) */
     .spinner {
-      width: 40px; height: 40px; border: 3px solid #cbd5e1;
-      border-top-color: #00aba5; border-radius: 50%;
-      animation: spin .8s linear infinite; display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 3px solid #cbd5e1;
+      border-top-color: #00aba5;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      display: inline-block;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ---------- Shimmer ---------- */
+    .shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ---------- Toast ---------- */
     .toast {
-      position: fixed; bottom: 24px; left: 50%;
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
       transform: translateX(-50%) translateY(120px);
-      background: #0f172a; color: white; padding: 12px 24px;
-      border-radius: 999px; font-weight: 600; z-index: 9999;
+      background: #0f172a;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-weight: 600;
+      z-index: 9999;
       transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
-    footer.site-footer {
-      background-color: #11504B; color: #e2e8f0;
-      padding: 40px 20px 20px; margin-top: auto;
+    /* ---------- Verified badge pulse ---------- */
+    .verified-badge-pulse {
+      animation: verifiedPulse 2.5s ease-in-out infinite;
     }
-    footer.site-footer .footer-inner { max-width: 1280px; margin: 0 auto; }
+    @keyframes verifiedPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,171,165,0.4); }
+      50%      { box-shadow: 0 0 0 14px rgba(0,171,165,0); }
+    }
+
+    /* ---------- Footer ---------- */
+    footer.site-footer {
+      background-color: #11504B;
+      color: #e2e8f0;
+      padding: 40px 20px 20px;
+      margin-top: auto;
+    }
+    footer.site-footer .footer-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
     footer.site-footer .footer-grid {
-      display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      align-items: start;
     }
     @media (min-width: 768px) {
-      footer.site-footer .footer-grid { grid-template-columns: repeat(4, 1fr); }
+      footer.site-footer .footer-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
     footer.site-footer img { max-width: 96px; height: auto; }
-    footer.site-footer .footer-brand { color: #ffffff; font-size: 1.125rem; font-weight: 800; }
+    footer.site-footer .footer-brand {
+      color: #ffffff;
+      font-size: 1.125rem;
+      font-weight: 800;
+    }
     footer.site-footer .footer-brand .brand-accent { color: var(--orange); }
-    footer.site-footer h4 { color: #ffffff; font-weight: 600; margin-bottom: 0.5rem; }
-    footer.site-footer ul { list-style: none; padding: 0; margin: 0; font-size: 0.875rem; }
+    footer.site-footer h4 {
+      color: #ffffff;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    footer.site-footer ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.875rem;
+    }
     footer.site-footer ul li { margin-bottom: 0.25rem; }
     footer.site-footer a { color: inherit; text-decoration: none; transition: color .2s; }
     footer.site-footer a:hover { color: var(--orange); }
     footer.site-footer .footer-bottom {
-      border-top: 1px solid rgba(255,255,255,0.15); margin-top: 2rem;
-      padding-top: 1.5rem; text-align: center; font-size: 0.875rem;
-      color: #94a3b8; line-height: 1.6;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #94a3b8;
+      line-height: 1.6;
     }
 
-    @media (max-width: 768px) { .pdf-viewer { aspect-ratio: 4/3; max-height: 55vh; } }
+    /* ---------- Responsive PDF viewer ---------- */
+    @media (max-width: 768px) {
+      .pdf-viewer { aspect-ratio: 4/3; max-height: 55vh; }
+    }
 
+    /* ---------- Print ---------- */
     @media print {
       body { background: white; }
       header, footer, .no-print, .toast, button, a[download] { display: none !important; }
       .pdf-viewer { box-shadow: none; border: 1px solid #cbd5e1; max-height: none; }
     }
 
-    /* ================= QR SCANNER MODAL ================= */
+    /* ===================================================================
+       QR SCANNER MODAL
+       =================================================================== */
     .qr-modal {
-      position: fixed; inset: 0; z-index: 9998;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-      display: flex; align-items: center; justify-content: center; padding: 16px;
-      opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
     }
-    .qr-modal.open { opacity: 1; pointer-events: auto; }
-
+    .qr-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
     .qr-modal-content {
-      background: #0f172a; border-radius: 20px; width: 100%; max-width: 460px;
-      overflow: hidden; box-shadow: 0 25px 60px -10px rgba(0,0,0,0.7);
+      background: #0f172a;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -10px rgba(0,0,0,0.6);
       transform: translateY(20px) scale(0.96);
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       border: 1px solid rgba(255,255,255,0.08);
     }
-    .qr-modal.open .qr-modal-content { transform: translateY(0) scale(1); }
-
+    .qr-modal.open .qr-modal-content {
+      transform: translateY(0) scale(1);
+    }
     .qr-modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .qr-modal-header h3 {
-      color: #fff; font-weight: 700; font-size: 0.95rem; margin: 0;
-      display: flex; align-items: center; gap: 8px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      margin: 0;
     }
     .qr-close-btn {
-      width: 34px; height: 34px; border-radius: 50%;
-      background: rgba(255,255,255,0.08); border: none; color: #fff;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-size: 1.15rem; line-height: 1; transition: background 0.2s;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      line-height: 1;
+      transition: background 0.2s;
     }
     .qr-close-btn:hover { background: rgba(255,255,255,0.16); }
 
-    /* Stage holds the visible canvas + overlays. */
-    .qr-stage {
+    .qr-video-wrapper {
       position: relative;
       width: 100%;
+      aspect-ratio: 1 / 1;
       background: #000;
       overflow: hidden;
     }
-    #qrCanvas {
-      display: block;
-      width: 100%;
-      height: auto;
-      background: #000;
-    }
-    /* hidden video just for stream plumbing */
     #qrVideo {
-      position: absolute; width: 1px; height: 1px; opacity: 0;
-      pointer-events: none; left: -9999px;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
-    /* Guide frame — purely cosmetic */
-    .qr-guide {
-      position: absolute; inset: 0; pointer-events: none;
-      display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.2s;
+    /* Scan frame overlay */
+    .qr-scan-frame {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .qr-guide.hidden { opacity: 0; }
-    .qr-guide-corners {
-      position: relative; width: 62%; aspect-ratio: 1 / 1; max-width: 280px;
+    .qr-scan-frame::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center,
+                  transparent 0%,
+                  transparent 38%,
+                  rgba(0,0,0,0.5) 42%,
+                  rgba(0,0,0,0.5) 100%);
     }
-    .qr-guide-corners::before,
-    .qr-guide-corners::after,
-    .qr-guide-corners > span::before,
-    .qr-guide-corners > span::after {
-      content: ''; position: absolute; width: 30px; height: 30px;
-      border-color: rgba(255,255,255,0.85); border-style: solid; border-width: 0;
+    .qr-frame-corners {
+      position: relative;
+      width: 62%;
+      aspect-ratio: 1 / 1;
+      z-index: 2;
     }
-    .qr-guide-corners::before { top: 0; left: 0; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 8px; }
-    .qr-guide-corners::after { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 8px; }
-    .qr-guide-corners > span::before { bottom: 0; left: 0; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 8px; }
-    .qr-guide-corners > span::after { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 8px; }
+    .qr-frame-corners::before,
+    .qr-frame-corners::after,
+    .qr-frame-corners > span::before,
+    .qr-frame-corners > span::after {
+      content: '';
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-color: #00aba5;
+      border-style: solid;
+      border-width: 0;
+    }
+    .qr-frame-corners::before {
+      top: 0; left: 0;
+      border-top-width: 4px;
+      border-left-width: 4px;
+      border-top-left-radius: 10px;
+    }
+    .qr-frame-corners::after {
+      top: 0; right: 0;
+      border-top-width: 4px;
+      border-right-width: 4px;
+      border-top-right-radius: 10px;
+    }
+    .qr-frame-corners > span::before {
+      bottom: 0; left: 0;
+      border-bottom-width: 4px;
+      border-left-width: 4px;
+      border-bottom-left-radius: 10px;
+    }
+    .qr-frame-corners > span::after {
+      bottom: 0; right: 0;
+      border-bottom-width: 4px;
+      border-right-width: 4px;
+      border-bottom-right-radius: 10px;
+    }
 
-    /* Success overlay — green outline */
-    .qr-outline {
-      position: absolute; pointer-events: none; z-index: 5;
-      border: 4px solid #00ff88; border-radius: 10px;
-      box-shadow: 0 0 0 9999px rgba(0,0,0,0.35), 0 0 25px rgba(0,255,136,0.7);
-      transition: all 0.15s ease-out;
+    /* Moving scan line */
+    .qr-scan-line {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #00aba5, transparent);
+      box-shadow: 0 0 12px 2px rgba(0,171,165,0.7);
+      border-radius: 3px;
+      animation: qrScanLine 2.2s ease-in-out infinite;
+      z-index: 3;
+      top: 20%;
+    }
+    @keyframes qrScanLine {
+      0%   { top: 20%; opacity: 0.2; }
+      50%  { top: 78%; opacity: 1; }
+      100% { top: 20%; opacity: 0.2; }
+    }
+
+    .qr-hint {
+      color: rgba(255,255,255,0.75);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 16px 20px 20px;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .qr-hint strong { color: #fff; }
+
+    /* Camera error / status message inside modal */
+    .qr-status {
       display: none;
+      padding: 40px 24px;
+      text-align: center;
+      color: #fff;
     }
-    .qr-outline.show { display: block; }
+    .qr-status.visible { display: block; }
+    .qr-status i { font-size: 2.5rem; color: #F8A233; display: block; margin-bottom: 12px; }
+    .qr-status p { font-size: 0.9rem; color: rgba(255,255,255,0.8); margin: 6px 0 0; line-height: 1.5; }
+    .qr-status .qr-permission-btn {
+      margin-top: 16px;
+      padding: 10px 22px;
+      background: #00aba5;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .qr-status .qr-permission-btn:hover { background: #008984; }
 
-    /* Status pill overlay */
-    .qr-pill {
-      position: absolute; bottom: 16px; left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: #00ff88; color: #0b2b4a;
-      padding: 10px 22px; border-radius: 999px;
-      font-weight: 800; font-size: 0.85rem;
-      box-shadow: 0 8px 24px rgba(0,255,136,0.4);
-      opacity: 0; transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      z-index: 10; white-space: nowrap; pointer-events: none;
-    }
-    .qr-pill.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .qr-pill.error { background: #ff5b5b; color: #fff; box-shadow: 0 8px 24px rgba(255,91,91,0.4); }
-
-    /* Actions */
-    .qr-actions {
-      padding: 14px 18px 18px;
-      display: flex; flex-direction: column; gap: 10px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .qr-snap-btn {
-      width: 100%; padding: 14px 20px; border: none; border-radius: 12px;
-      background: #00aba5; color: #fff; font-weight: 800; font-size: 0.95rem;
-      cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
-      justify-content: center; gap: 10px;
-    }
-    .qr-snap-btn:hover { background: #008984; transform: translateY(-2px); }
-    .qr-snap-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .qr-snap-btn svg { width: 20px; height: 20px; }
-
-    .qr-status-line {
-      margin: 0; text-align: center;
-      color: rgba(255,255,255,0.65);
-      font-size: 0.78rem; line-height: 1.5;
-    }
-
-    /* Camera-error block */
-    .qr-error-block {
-      display: none; padding: 32px 24px; text-align: center; color: #fff;
-    }
-    .qr-error-block.visible { display: block; }
-    .qr-error-block .qr-err-icon { font-size: 2.2rem; display: block; margin-bottom: 10px; }
-    .qr-error-block p { margin: 0; font-size: 0.88rem; color: rgba(255,255,255,0.8); line-height: 1.5; }
-    .qr-error-block button {
-      margin-top: 14px; padding: 10px 22px; border: none; border-radius: 999px;
-      background: #00aba5; color: #fff; font-weight: 700; font-size: 0.85rem;
-      cursor: pointer; transition: background 0.2s;
-    }
-    .qr-error-block button:hover { background: #008984; }
-
-    /* Scan-QR trigger on the search page */
+    /* Scan QR button (below verify) */
     .scan-qr-btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 12px 24px; background: #fff; color: #0f172a; font-weight: 700;
-      font-size: 0.9rem; border: 2px solid #e2e8f0; border-radius: 12px;
-      cursor: pointer; transition: all 0.25s ease; width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: #fff;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      width: 100%;
     }
     .scan-qr-btn:hover {
-      border-color: #00aba5; color: #008984; background: #e6f7f6;
-      transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,171,165,0.15);
+      border-color: #00aba5;
+      color: #008984;
+      background: #e6f7f6;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,171,165,0.15);
     }
-    .scan-qr-btn svg { width: 20px; height: 20px; }
+    .scan-qr-btn svg {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.25s;
+    }
+    .scan-qr-btn:hover svg { transform: scale(1.1); }
 
+    /* Hide body scroll when modal open */
     body.qr-modal-open { overflow: hidden; }
   </style>
 </head>
 <body class="antialiased text-slate-800">
 
+  <!-- ===== HEADER ===== -->
   <header class="border-b border-teal-100 sticky top-0 z-40 no-print" style="background-color:#00aba5">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2 group" aria-label="Lingo‑Ville home">
@@ -385,6 +566,7 @@
 
   <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 w-full">
 
+    <!-- ===== LANDING / SEARCH ===== -->
     <section id="searchState">
       <div class="text-center py-8 sm:py-14">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-teal-50 rounded-2xl mb-5 shadow-inner">
@@ -407,12 +589,14 @@
             </button>
           </div>
 
+          <!-- Divider with "or" -->
           <div class="flex items-center gap-3 my-5">
             <div class="flex-1 h-px bg-slate-200"></div>
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">or</span>
             <div class="flex-1 h-px bg-slate-200"></div>
           </div>
 
+          <!-- Scan QR button -->
           <button type="button" id="scanQrBtn" class="scan-qr-btn" aria-label="Scan QR code with camera">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7V5a2 2 0 0 1 2-2h2" />
@@ -432,6 +616,7 @@
       </div>
     </section>
 
+    <!-- ===== LOADING (fancy loader) ===== -->
     <section id="loadingState" class="hidden">
       <div class="inline-loader">
         <span class="loader"></span>
@@ -440,10 +625,15 @@
       </div>
     </section>
 
+    <!-- ===== RESULT ===== -->
     <section id="resultState" class="hidden space-y-6">
+
+      <!-- Status banner -->
       <div id="statusBanner"></div>
 
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        <!-- PDF viewer -->
         <div class="lg:col-span-3 space-y-4">
           <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
             <div class="px-5 py-3.5 bg-teal-50/40 border-b border-teal-100 flex items-center justify-between">
@@ -458,6 +648,7 @@
             </div>
           </div>
 
+          <!-- Report (only if exists) -->
           <div id="reportCard" class="hidden bg-white rounded-2xl shadow-soft border border-orange-100 overflow-hidden">
             <div class="px-5 py-3.5 bg-orange-50/70 border-b border-orange-100 flex items-center gap-2">
               <svg class="w-4 h-4 text-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,7 +680,9 @@
           </div>
         </div>
 
+        <!-- Details -->
         <aside class="lg:col-span-2 space-y-4">
+
           <div class="bg-white rounded-2xl shadow-soft border border-slate-200 p-5 space-y-4">
             <div>
               <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Certificate ID</span>
@@ -517,6 +710,7 @@
             </div>
           </div>
 
+          <!-- Share card -->
           <div class="bg-white rounded-2xl shadow-soft border border-slate-200 p-5">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Share</p>
             <div class="grid grid-cols-3 gap-2">
@@ -554,9 +748,11 @@
             ← Verify another certificate
           </button>
         </aside>
+
       </div>
     </section>
 
+    <!-- ===== ERROR ===== -->
     <section id="errorState" class="hidden text-center py-16">
       <div class="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-2xl mb-5">
         <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,6 +769,7 @@
 
   </main>
 
+  <!-- ===== FOOTER ===== -->
   <footer class="site-footer no-print">
     <div class="footer-inner">
       <div class="footer-grid">
@@ -612,39 +809,38 @@
   <div id="qrModal" class="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle" aria-hidden="true">
     <div class="qr-modal-content">
       <div class="qr-modal-header">
-        <h3 id="qrModalTitle">📷 Scan Certificate QR</h3>
+        <h3 id="qrModalTitle">
+          <svg style="display:inline-block;vertical-align:-3px;width:18px;height:18px;margin-right:6px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+            <rect x="7" y="7" width="10" height="10" rx="1" />
+          </svg>
+          Scan Certificate QR
+        </h3>
         <button type="button" class="qr-close-btn" id="qrCloseBtn" aria-label="Close scanner">✕</button>
       </div>
 
-      <!-- Live camera + freeze stage -->
-      <div class="qr-stage" id="qrStage">
+      <div class="qr-video-wrapper" id="qrVideoWrapper">
         <video id="qrVideo" playsinline muted autoplay></video>
-        <canvas id="qrCanvas" width="640" height="480"></canvas>
-        <div class="qr-guide" id="qrGuide">
-          <div class="qr-guide-corners"><span></span></div>
+        <div class="qr-scan-frame">
+          <div class="qr-frame-corners"><span></span></div>
+          <div class="qr-scan-line"></div>
         </div>
-        <div class="qr-outline" id="qrOutline"></div>
-        <div class="qr-pill" id="qrPill">✓ QR detected</div>
       </div>
 
-      <!-- Camera error state -->
-      <div class="qr-error-block" id="qrErrorBlock">
-        <span class="qr-err-icon" id="qrErrIcon">📷</span>
-        <p id="qrErrorMessage">Requesting camera…</p>
-        <button type="button" id="qrRetryBtn">Try Again</button>
+      <!-- Status / error message -->
+      <div class="qr-status" id="qrStatus">
+        <i class="qr-icon">📷</i>
+        <p id="qrStatusText">Requesting camera access…</p>
+        <button type="button" class="qr-permission-btn" id="qrRetryBtn" style="display:none;">Try Again</button>
       </div>
 
-      <!-- Actions -->
-      <div class="qr-actions">
-        <button type="button" class="qr-snap-btn" id="qrSnapBtn">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="13" r="4" />
-            <path d="M5 7h3l2-2h4l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" />
-          </svg>
-          <span>Capture &amp; Scan</span>
-        </button>
-        <p class="qr-status-line" id="qrStatusLine">Point at the QR code — auto-scanning…</p>
-      </div>
+      <p class="qr-hint">
+        Align the QR code inside the frame.<br />
+        <strong>Scanning happens on your device.</strong>
+      </p>
     </div>
   </div>
 

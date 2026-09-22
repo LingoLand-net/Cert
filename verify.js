@@ -2,10 +2,12 @@
 (function () {
   const CFG = window.VERIFY_CONFIG;
 
+  // ---------- Setup PDF.js ----------
   if (window.pdfjsLib && CFG.PDFJS_WORKER) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = CFG.PDFJS_WORKER;
   }
 
+  // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
   const sections = {
     search:  $('searchState'),
@@ -19,6 +21,7 @@
     sections[name].classList.remove('hidden');
   }
 
+  // ---------- Helpers ----------
   function escapeHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -43,38 +46,57 @@
     t._to = setTimeout(() => t.classList.remove('show'), duration);
   }
 
+  // ---------- Local cache ----------
   const CERT_CACHE_TTL_MS = 5 * 60 * 1000;
   const CERT_CACHE_PREFIX = 'lv_cert_';
-  function readCertCache(id) {
+
+  function readCertCache(certId) {
     try {
-      const raw = localStorage.getItem(CERT_CACHE_PREFIX + id);
+      const raw = localStorage.getItem(CERT_CACHE_PREFIX + certId);
       if (!raw) return null;
-      const p = JSON.parse(raw);
-      if (!p || !p.data || !p.at || Date.now() - p.at > CERT_CACHE_TTL_MS) return null;
-      return p.data;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.data || !parsed.at) return null;
+      if (Date.now() - parsed.at > CERT_CACHE_TTL_MS) {
+        localStorage.removeItem(CERT_CACHE_PREFIX + certId);
+        return null;
+      }
+      return parsed.data;
     } catch (_) { return null; }
   }
-  function writeCertCache(id, data) {
-    try { localStorage.setItem(CERT_CACHE_PREFIX + id, JSON.stringify({ data, at: Date.now() })); } catch (_) {}
+
+  function writeCertCache(certId, data) {
+    try {
+      localStorage.setItem(CERT_CACHE_PREFIX + certId, JSON.stringify({ data, at: Date.now() }));
+    } catch (_) {}
   }
 
+  // ---------- Hash routing ----------
   function parseHash() {
     const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
     return raw ? decodeURIComponent(raw).toLowerCase() : '';
   }
-  function setHash(id) {
-    const next = `#/${encodeURIComponent(id)}`;
+
+  function setHash(certId) {
+    const next = `#/${encodeURIComponent(certId)}`;
     if (window.location.hash !== next) {
-      window.history.pushState(null, '', next);
+      // Setting location.hash fires hashchange, which calls handleRoute().
+      window.location.hash = next;
+    } else {
+      // Same hash — force re-run
       handleRoute();
     }
   }
+
   function clearHash() {
-    if (window.location.hash) window.history.pushState(null, '', window.location.pathname);
+    if (window.location.hash) {
+      // Use replace to avoid polluting history
+      history.replaceState(null, '', window.location.pathname);
+    }
   }
 
-  async function fetchCert(id) {
-    const url = `${CFG.APPS_SCRIPT_URL}?action=getCert&id=${encodeURIComponent(id)}`;
+  // ---------- API ----------
+  async function fetchCert(certId) {
+    const url = `${CFG.APPS_SCRIPT_URL}?action=getCert&id=${encodeURIComponent(certId)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('NETWORK_' + res.status);
     const json = await res.json();
@@ -82,64 +104,102 @@
     return json.data;
   }
 
+  // ---------- PDF rendering ----------
   async function renderPdf(container, url) {
     container.innerHTML = '';
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const scale = isMobile ? 1.25 : 1.5;
+    const renderScale = isMobile ? 1.25 : 1.5;
+
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error('FETCH_' + res.status);
       const buf = await res.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-      const pages = isMobile ? 1 : pdf.numPages;
-      for (let i = 1; i <= pages; i++) {
+      const pagesToRender = isMobile ? 1 : pdf.numPages;
+
+      for (let i = 1; i <= pagesToRender; i++) {
         const page = await pdf.getPage(i);
-        const vp = page.getViewport({ scale });
-        const c = document.createElement('canvas');
-        const ctx = c.getContext('2d');
-        c.width = vp.width; c.height = vp.height;
-        container.appendChild(c);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        const viewport = page.getViewport({ scale: renderScale });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        container.appendChild(canvas);
+        await page.render({ canvasContext: ctx, viewport }).promise;
       }
+
       if (isMobile) {
-        const c = container.querySelector('canvas');
-        if (c) {
-          const a = document.createElement('a');
-          a.href = url; a.target = '_blank'; a.rel = 'noopener';
-          a.className = 'block relative cursor-pointer';
-          container.removeChild(c);
-          a.appendChild(c);
+        const canvas = container.querySelector('canvas');
+        if (canvas) {
+          const wrapper = document.createElement('a');
+          wrapper.href = url;
+          wrapper.target = '_blank';
+          wrapper.rel = 'noopener';
+          wrapper.className = 'block relative cursor-pointer';
+          container.removeChild(canvas);
+          wrapper.appendChild(canvas);
           const pill = document.createElement('div');
-          pill.className = 'absolute top-3 right-3 bg-white/95 text-slate-800 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg pointer-events-none';
-          pill.textContent = 'Tap to open';
-          a.appendChild(pill);
-          container.appendChild(a);
+          pill.className = 'absolute top-3 right-3 bg-white/95 text-slate-800 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg pointer-events-none';
+          pill.innerHTML = `
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Tap to open
+          `;
+          wrapper.appendChild(pill);
+          container.appendChild(wrapper);
+          const hint = document.createElement('p');
+          hint.className = 'text-xs text-slate-400 text-center mt-3';
+          hint.textContent = 'Opens in your device PDF viewer';
+          container.appendChild(hint);
         }
       }
       return;
-    } catch (err) { console.warn('PDF.js failed:', err); }
+    } catch (err) {
+      console.warn('PDF.js failed, falling back to direct link:', err);
+    }
+
     container.innerHTML = `
       <a href="${escapeHtml(url)}" target="_blank" rel="noopener"
-         class="block w-full py-10 rounded-lg border-2 border-dashed border-slate-300 bg-white hover:border-teal-400 transition text-center">
+         class="block w-full py-10 rounded-lg border-2 border-dashed border-slate-300 bg-white hover:border-teal-400 hover:bg-teal-50/40 transition text-center">
+        <svg class="w-12 h-12 text-teal mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
         <p class="text-sm font-bold text-slate-700">Open Certificate</p>
         <p class="text-xs text-slate-400 mt-1">Opens in a new tab</p>
-      </a>`;
+      </a>
+    `;
   }
 
+  // ---------- Render states ----------
   function renderStatusBanner(status) {
     const el = $('statusBanner');
     if (status === 'active') {
-      el.innerHTML = `<div class="flex items-center gap-3 px-5 py-3 bg-teal-50 border border-teal-200 rounded-2xl">
-        <span class="text-sm font-bold text-teal-800">Verified · Active Certificate</span></div>`;
+      el.innerHTML = `
+        <div class="flex items-center gap-3 px-5 py-3 bg-teal-50 border border-teal-200 rounded-2xl">
+          <svg class="w-5 h-5 text-teal flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+          <span class="text-sm font-bold text-teal-800">Verified · Active Certificate</span>
+        </div>`;
     } else if (status === 'revoked') {
-      el.innerHTML = `<div class="flex items-center gap-3 px-5 py-3 bg-red-50 border border-red-200 rounded-2xl">
-        <span class="text-sm font-bold text-red-700">This certificate has been revoked</span></div>`;
+      el.innerHTML = `
+        <div class="flex items-center gap-3 px-5 py-3 bg-red-50 border border-red-200 rounded-2xl">
+          <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <span class="text-sm font-bold text-red-700">This certificate has been revoked</span>
+        </div>`;
     } else if (status === 'pending') {
-      el.innerHTML = `<div class="flex items-center gap-3 px-5 py-3 bg-yellow-50 border border-yellow-200 rounded-2xl">
-        <span class="text-sm font-bold text-yellow-700">This certificate is pending review</span></div>`;
+      el.innerHTML = `
+        <div class="flex items-center gap-3 px-5 py-3 bg-yellow-50 border border-yellow-200 rounded-2xl">
+          <span class="text-sm font-bold text-yellow-700">This certificate is pending review</span>
+        </div>`;
     } else {
-      el.innerHTML = `<div class="flex items-center gap-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl">
-        <span class="text-sm font-bold text-slate-700">Status: ${escapeHtml(status)}</span></div>`;
+      el.innerHTML = `
+        <div class="flex items-center gap-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl">
+          <span class="text-sm font-bold text-slate-700">Status: ${escapeHtml(status)}</span>
+        </div>`;
     }
   }
 
@@ -154,20 +214,30 @@
     $('metaDate').textContent = fmtDate(cert.IssueDate);
     $('metaIssuer').textContent = cert.Issuer || 'Lingo-Ville Language Centre';
 
-    const rc = $('reportCard');
-    if (cert.ReportURL) { rc.classList.remove('hidden'); $('reportDownloadBtn').href = cert.ReportURL; }
-    else rc.classList.add('hidden');
-
-    const pv = $('pdfViewer');
-    if (cert.Status === 'revoked') {
-      pv.innerHTML = `<div class="text-center py-16 px-4">
-        <p class="text-slate-500 font-semibold">PDF preview disabled — this certificate is revoked.</p></div>`;
-    } else if (cert.CertURL) {
-      pv.innerHTML = `<div class="text-center py-20"><div class="spinner mx-auto"></div>
-        <p class="text-xs text-slate-400 mt-3">Rendering PDF…</p></div>`;
-      renderPdf(pv, cert.CertURL);
+    const reportCard = $('reportCard');
+    if (cert.ReportURL) {
+      reportCard.classList.remove('hidden');
+      $('reportDownloadBtn').href = cert.ReportURL;
     } else {
-      pv.innerHTML = `<div class="text-center py-16 text-slate-500 text-sm">Certificate file unavailable.</div>`;
+      reportCard.classList.add('hidden');
+    }
+
+    const pdfViewer = $('pdfViewer');
+    if (cert.Status === 'revoked') {
+      pdfViewer.innerHTML = `
+        <div class="text-center py-16 px-4">
+          <p class="text-slate-500 font-semibold">The PDF preview has been disabled because this certificate is revoked.</p>
+          <p class="text-xs text-slate-400 mt-2">If you believe this is an error, contact ${escapeHtml(CFG.SUPPORT_EMAIL)}.</p>
+        </div>`;
+    } else if (cert.CertURL) {
+      pdfViewer.innerHTML = `
+        <div class="text-center py-20">
+          <div class="spinner mx-auto"></div>
+          <p class="text-xs text-slate-400 mt-3">Rendering PDF…</p>
+        </div>`;
+      renderPdf(pdfViewer, cert.CertURL);
+    } else {
+      pdfViewer.innerHTML = `<div class="text-center py-16 text-slate-500 text-sm">Certificate file is not available.</div>`;
     }
   }
 
@@ -177,50 +247,80 @@
     $('errorMessage').textContent = message || 'The ID you entered does not match any record.';
   }
 
+  // ---------- Router ----------
   let currentLookup = 0;
+
   async function handleRoute() {
-    const id = parseHash();
-    if (!id) { showOnly('search'); return; }
-    const my = ++currentLookup;
-    const cached = readCertCache(id);
-    if (cached) { if (my === currentLookup) renderResult(cached); return; }
+    const certId = parseHash();
+    if (!certId) { showOnly('search'); return; }
+
+    const myLookup = ++currentLookup;
+    const cached = readCertCache(certId);
+    if (cached) {
+      if (myLookup !== currentLookup) return;
+      renderResult(cached);
+      return;
+    }
+
     showOnly('loading');
     try {
-      const cert = await fetchCert(id);
-      if (my !== currentLookup) return;
-      writeCertCache(id, cert);
+      const cert = await fetchCert(certId);
+      if (myLookup !== currentLookup) return;
+      writeCertCache(certId, cert);
       renderResult(cert);
     } catch (err) {
-      if (my !== currentLookup) return;
-      if (err.message === 'CERT_NOT_FOUND') renderError(`No certificate matches "${id}".`, 'Certificate Not Found');
-      else if (err.message === 'MISSING_CERT_ID') showOnly('search');
-      else renderError('Could not reach the verification service. Please try again.', 'Verification Error');
+      if (myLookup !== currentLookup) return;
+      if (err.message === 'CERT_NOT_FOUND') {
+        renderError(`No certificate matches the ID "${certId}".`, 'Certificate Not Found');
+      } else if (err.message === 'MISSING_CERT_ID') {
+        showOnly('search');
+      } else {
+        renderError('Could not reach the verification service. Please try again.', 'Verification Error');
+      }
     }
   }
 
+  // ---------- Prefetch on typing ----------
   let prefetchTimer = null;
   const prefetchedIds = new Set();
-  function prefetchCert(id) {
-    if (!id || prefetchedIds.has(id) || readCertCache(id)) return;
-    prefetchedIds.add(id);
-    fetchCert(id).then(d => writeCertCache(id, d)).catch(() => {});
+
+  function prefetchCert(certId) {
+    if (!certId) return;
+    if (prefetchedIds.has(certId)) return;
+    if (readCertCache(certId)) return;
+    prefetchedIds.add(certId);
+    fetchCert(certId).then(d => writeCertCache(certId, d)).catch(() => {});
   }
 
+  // ---------- Sharing ----------
   function getShareUrl() { return window.location.href; }
+
   async function shareInstagramStory() {
+    const url = getShareUrl();
     if (navigator.share) {
-      try { await navigator.share({ title: 'Lingo‑Ville Certificate', text: 'I just got certified by Lingo‑Ville 🎓', url: getShareUrl() }); return; }
-      catch (err) { if (err && err.name === 'AbortError') return; }
+      try {
+        await navigator.share({ title: 'Lingo‑Ville Certificate', text: 'I just got certified by Lingo‑Ville 🎓', url });
+        return;
+      } catch (err) { if (err && err.name === 'AbortError') return; }
     }
     showToast('Open this page on your phone to post to Instagram Story');
   }
+
   function shareLinkedIn() {
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(getShareUrl())}`, '_blank', 'noopener,width=620,height=620');
+    const url = encodeURIComponent(getShareUrl());
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener,width=620,height=620');
   }
+
   async function shareCopyLink() {
-    try { await navigator.clipboard.writeText(getShareUrl()); showToast('Link copied'); }
-    catch (_) { window.prompt('Copy this link:', getShareUrl()); }
+    const url = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Verification link copied');
+    } catch (_) {
+      window.prompt('Copy this link:', url);
+    }
   }
+
   function wireShareButtons() {
     $('shareInstagramBtn')?.addEventListener('click', shareInstagramStory);
     $('shareLinkedinBtn')?.addEventListener('click', shareLinkedIn);
@@ -228,45 +328,85 @@
   }
 
   // ===================================================================
-  // QR SCANNER — snap → freeze → scan → redirect
+  // QR SCANNER — clean, simple, reliable
   // ===================================================================
   const qr = {
-    modal: null, stage: null, video: null, canvas: null, ctx: null,
-    guide: null, outline: null, pill: null,
-    errorBlock: null, errorMessage: null, errIcon: null, retryBtn: null,
-    snapBtn: null, statusLine: null, closeBtn: null,
+    modal: null, video: null, videoWrapper: null, closeBtn: null,
+    status: null, statusText: null, retryBtn: null,
     stream: null,
+    scanTimer: null,
+    canvas: null, ctx: null,
     active: false,
-    frozen: false,
     starting: false,
-    loopTimer: null,
-    frameW: 0, frameH: 0
+    detector: null,
+    frameCount: 0,
+    lastRaw: '', lastRawCount: 0, lastRawTime: 0,
+    handling: false   // true while a detection is being processed
   };
+
+  function injectQrStyles() {
+    if (document.getElementById('qr-extra-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'qr-extra-styles';
+    s.textContent = `
+      .qr-video-wrapper.qr-detected::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 6px solid #00ff88;
+        pointer-events: none;
+        z-index: 10;
+        box-shadow: inset 0 0 60px rgba(0,255,136,0.5);
+        animation: qrDetectedPulse 0.5s ease-out;
+      }
+      @keyframes qrDetectedPulse {
+        0%   { opacity: 0; }
+        40%  { opacity: 1; }
+        100% { opacity: 0.85; }
+      }
+      .qr-detected-badge {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #00ff88;
+        color: #0f172a;
+        padding: 10px 22px;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: 0.9rem;
+        z-index: 11;
+        box-shadow: 0 8px 24px rgba(0,255,136,0.5);
+        white-space: nowrap;
+        animation: qrBadgePop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes qrBadgePop {
+        0%   { transform: translateX(-50%) scale(0.5); opacity: 0; }
+        100% { transform: translateX(-50%) scale(1);   opacity: 1; }
+      }
+    `;
+    document.head.appendChild(s);
+  }
 
   function initQrScanner() {
     qr.modal        = $('qrModal');
-    qr.stage        = $('qrStage');
     qr.video        = $('qrVideo');
-    qr.canvas       = $('qrCanvas');
-    qr.guide        = $('qrGuide');
-    qr.outline      = $('qrOutline');
-    qr.pill         = $('qrPill');
-    qr.errorBlock   = $('qrErrorBlock');
-    qr.errorMessage = $('qrErrorMessage');
-    qr.errIcon      = $('qrErrIcon');
-    qr.retryBtn     = $('qrRetryBtn');
-    qr.snapBtn      = $('qrSnapBtn');
-    qr.statusLine   = $('qrStatusLine');
+    qr.videoWrapper = $('qrVideoWrapper');
     qr.closeBtn     = $('qrCloseBtn');
+    qr.status       = $('qrStatus');
+    qr.statusText   = $('qrStatusText');
+    qr.retryBtn     = $('qrRetryBtn');
 
-    if (!qr.modal) return;
+    if (!qr.modal) { console.warn('[QR] modal not found'); return; }
 
+    injectQrStyles();
+
+    qr.canvas = document.createElement('canvas');
     qr.ctx = qr.canvas.getContext('2d', { willReadFrequently: true });
 
     $('scanQrBtn')?.addEventListener('click', openQrScanner);
     qr.closeBtn?.addEventListener('click', closeQrScanner);
-    qr.retryBtn?.addEventListener('click', startCamera);
-    qr.snapBtn?.addEventListener('click', () => snapAndScan(true));
+    qr.retryBtn?.addEventListener('click', () => startCamera());
 
     qr.modal.addEventListener('click', (e) => {
       if (e.target === qr.modal) closeQrScanner();
@@ -276,55 +416,81 @@
       if (e.key === 'Escape' && qr.active) closeQrScanner();
     });
 
-    console.log('[QR] Initialized. jsQR loaded?', typeof window.jsQR === 'function');
+    // Async — BarcodeDetector probe
+    probeDetector();
   }
 
-  function showQrError(msg, icon = '📷', showRetry = true) {
-    qr.stage.style.display = 'none';
-    qr.errorBlock.classList.add('visible');
-    qr.errorMessage.textContent = msg;
-    qr.errIcon.textContent = icon;
-    qr.retryBtn.style.display = showRetry ? 'inline-block' : 'none';
-    qr.statusLine.textContent = '';
+  async function probeDetector() {
+    if (!('BarcodeDetector' in window)) {
+      console.log('[QR] Native BarcodeDetector not available');
+      return;
+    }
+    try {
+      let supported = null;
+      if (typeof window.BarcodeDetector.getSupportedFormats === 'function') {
+        supported = await window.BarcodeDetector.getSupportedFormats();
+      }
+      if (supported && !supported.includes('qr_code')) {
+        console.log('[QR] Native BarcodeDetector does not support qr_code');
+        return;
+      }
+      qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+      console.log('[QR] Native BarcodeDetector ready');
+    } catch (err) {
+      console.warn('[QR] BarcodeDetector init failed:', err);
+      qr.detector = null;
+    }
   }
 
-  function hideQrError() {
-    qr.stage.style.display = '';
-    qr.errorBlock.classList.remove('visible');
+  function setQrStatus(message, showRetry = false) {
+    if (!qr.status) return;
+    qr.status.classList.add('visible');
+    qr.videoWrapper.style.display = 'none';
+    if (qr.statusText) qr.statusText.textContent = message;
+    if (qr.retryBtn) qr.retryBtn.style.display = showRetry ? 'inline-block' : 'none';
   }
 
-  function resetVisuals() {
-    qr.guide.classList.remove('hidden');
-    qr.outline.classList.remove('show');
-    qr.pill.classList.remove('show', 'error');
-    qr.pill.textContent = '✓ QR detected';
-    qr.statusLine.textContent = 'Point at the QR code — auto-scanning…';
-    qr.snapBtn.disabled = false;
+  function clearQrStatus() {
+    if (!qr.status) return;
+    qr.status.classList.remove('visible');
+    qr.videoWrapper.style.display = '';
   }
 
   async function openQrScanner() {
     if (!qr.modal) return;
 
     if (!window.isSecureContext) {
-      showToast('Camera needs HTTPS — open this site over https://');
-      return;
-    }
-    if (!navigator.mediaDevices?.getUserMedia) {
-      showToast('Camera not supported in this browser.');
-      return;
-    }
-    if (typeof window.jsQR !== 'function' && !('BarcodeDetector' in window)) {
-      showToast('QR library still loading — try again in a moment.');
+      showToast('Camera requires HTTPS');
+      console.warn('[QR] Not a secure context');
       return;
     }
 
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast('Camera not supported in this browser');
+      return;
+    }
+
+    // Make sure the jsQR fallback is present
+    if (typeof window.jsQR !== 'function' && !qr.detector) {
+      await new Promise(r => setTimeout(r, 500));
+      if (typeof window.jsQR !== 'function' && !qr.detector) {
+        showToast('QR library failed to load. Please refresh.');
+        console.error('[QR] No scanning backend');
+        return;
+      }
+    }
+
     qr.active = true;
-    qr.frozen = false;
+    qr.handling = false;
+    qr.frameCount = 0;
+    qr.lastRaw = '';
+    qr.lastRawCount = 0;
     qr.modal.classList.add('open');
     qr.modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('qr-modal-open');
-    hideQrError();
-    resetVisuals();
+    clearQrStatus();
+    qr.videoWrapper.classList.remove('qr-detected');
+    qr.videoWrapper.querySelectorAll('.qr-detected-badge').forEach(el => el.remove());
 
     await startCamera();
   }
@@ -332,85 +498,85 @@
   function closeQrScanner() {
     if (!qr.active) return;
     qr.active = false;
-    qr.frozen = false;
-    stopLoop();
-    stopStream();
+    qr.handling = false;
+    stopScanLoop();
+    stopCamera();
     qr.modal.classList.remove('open');
     qr.modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('qr-modal-open');
-    resetVisuals();
+    qr.videoWrapper.classList.remove('qr-detected');
+    qr.videoWrapper.querySelectorAll('.qr-detected-badge').forEach(el => el.remove());
+    clearQrStatus();
   }
 
   async function startCamera() {
     if (qr.starting) return;
     qr.starting = true;
-    try {
-      stopStream();
-      hideQrError();
-      resetVisuals();
-      qr.frozen = false;
 
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
+    try {
+      stopScanLoop();
+      stopCamera();
+      clearQrStatus();
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setQrStatus('Camera is not supported in this browser.', false);
+        return;
+      }
+
+      // Progressive fallback — try the most specific constraints first.
+      const attempts = [
+        { audio: false, video: {
             facingMode: { ideal: 'environment' },
-            width:  { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        });
-      } catch (err) {
-        console.warn('[QR] Primary constraints failed:', err && err.name);
-        // Try again with any camera
+            width:  { ideal: 1920, min: 640 },
+            height: { ideal: 1080, min: 480 }
+        }},
+        { audio: false, video: { facingMode: { ideal: 'environment' } } },
+        { audio: false, video: { facingMode: 'environment' } },
+        { audio: false, video: true }
+      ];
+
+      let lastErr = null;
+      for (const constraints of attempts) {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
-        } catch (err2) {
-          console.error('[QR] Camera access failed:', err2);
-          let msg = 'Could not access the camera.';
-          if (err2 && (err2.name === 'NotAllowedError' || err2.name === 'SecurityError')) {
-            msg = 'Camera permission denied. Allow camera access in your browser settings, then tap Try Again.';
-          } else if (err2 && (err2.name === 'NotFoundError' || err2.name === 'DevicesNotFoundError')) {
-            msg = 'No camera found on this device. Enter the certificate ID manually instead.';
-            showQrError(msg, '📷', false);
-            return;
-          } else if (err2 && err2.name === 'NotReadableError') {
-            msg = 'Camera is in use by another app. Close it and try again.';
-          }
-          showQrError(msg, '⚠️', true);
-          return;
+          qr.stream = await navigator.mediaDevices.getUserMedia(constraints);
+          break;
+        } catch (err) {
+          lastErr = err;
+          console.warn('[QR] Constraint failed:', JSON.stringify(constraints.video), err.name);
         }
       }
 
-      qr.stream = stream;
-      const track = stream.getVideoTracks()[0];
-      console.log('[QR] Camera ready:', track?.getSettings?.());
+      if (!qr.stream) {
+        let msg = 'Could not access the camera.';
+        if (lastErr) {
+          if (lastErr.name === 'NotAllowedError' || lastErr.name === 'SecurityError') {
+            msg = 'Camera permission denied. Please allow camera access and try again.';
+          } else if (lastErr.name === 'NotFoundError' || lastErr.name === 'DevicesNotFoundError') {
+            msg = 'No camera found on this device.';
+          } else if (lastErr.name === 'NotReadableError') {
+            msg = 'Camera is in use by another app. Close it and retry.';
+          }
+        }
+        setQrStatus(msg, true);
+        return;
+      }
 
-      qr.video.srcObject = stream;
-      qr.video.muted = true;
-      qr.video.playsInline = true;
+      const track = qr.stream.getVideoTracks()[0];
+      console.log('[QR] Stream acquired:', track?.getSettings?.());
+
+      qr.video.srcObject = qr.stream;
       qr.video.setAttribute('playsinline', 'true');
       qr.video.setAttribute('webkit-playsinline', 'true');
+      qr.video.muted = true;
+      qr.video.playsInline = true;
 
-      try { await qr.video.play(); } catch (err) { console.warn('[QR] video.play():', err); }
+      try { await qr.video.play(); } catch (err) { console.warn('[QR] play() failed:', err); }
 
       await waitForVideoReady();
 
-      const vw = qr.video.videoWidth || 1280;
-      const vh = qr.video.videoHeight || 720;
+      console.log('[QR] Video ready: ' + qr.video.videoWidth + 'x' + qr.video.videoHeight);
 
-      // Match canvas aspect to the camera feed so nothing is cropped.
-      const maxDim = 900;
-      const scale = Math.min(1, maxDim / Math.max(vw, vh));
-      qr.frameW = Math.round(vw * scale);
-      qr.frameH = Math.round(vh * scale);
-
-      qr.canvas.width  = qr.frameW;
-      qr.canvas.height = qr.frameH;
-
-      console.log(`[QR] Frame ${vw}x${vh} → canvas ${qr.frameW}x${qr.frameH}`);
-
-      startLoop();
+      startScanLoop();
     } finally {
       qr.starting = false;
     }
@@ -427,260 +593,192 @@
         if (qr.video.videoWidth > 0 && qr.video.readyState >= 2) {
           clearInterval(poll); finish();
         }
-      }, 100);
+      }, 80);
       setTimeout(() => { clearInterval(poll); finish(); }, 3000);
     });
   }
 
-  function stopStream() {
+  function stopCamera() {
     if (qr.stream) {
       qr.stream.getTracks().forEach(t => t.stop());
       qr.stream = null;
     }
-    if (qr.video) qr.video.srcObject = null;
+    if (qr.video) {
+      try { qr.video.pause(); } catch (_) {}
+      qr.video.srcObject = null;
+    }
   }
 
-  function startLoop() {
-    stopLoop();
-    let ticks = 0;
+  function startScanLoop() {
+    stopScanLoop();
+    const INTERVAL = 90; // ~11 fps
 
-    // Draw the camera frame to the visible canvas, then try to decode that exact frame.
     const tick = () => {
-      if (!qr.active || qr.frozen) return;
-
-      const v = qr.video;
-      if (v.readyState >= 2 && v.videoWidth > 0) {
-        try {
-          qr.ctx.drawImage(v, 0, 0, qr.frameW, qr.frameH);
-        } catch (err) {
-          console.warn('[QR] drawImage failed:', err);
-        }
-
-        ticks++;
-        if (ticks % 8 === 0) {
-          console.log(`[QR] Live tick #${ticks} · ${qr.frameW}x${qr.frameH}`);
-        }
-
-        // Attempt auto-detect on this freshly drawn frame
-        const found = detectOnCanvas(qr.canvas);
-        if (found) { handleDetection(found); return; }
-      }
-
-      qr.loopTimer = setTimeout(tick, 220);
+      if (!qr.active || qr.handling) return;
+      try { scanOnce(); } catch (err) { console.warn('[QR] scan error:', err); }
+      qr.scanTimer = setTimeout(tick, INTERVAL);
     };
 
-    tick();
+    qr.scanTimer = setTimeout(tick, 150);
   }
 
-  function stopLoop() {
-    if (qr.loopTimer) { clearTimeout(qr.loopTimer); qr.loopTimer = null; }
+  function stopScanLoop() {
+    if (qr.scanTimer) { clearTimeout(qr.scanTimer); qr.scanTimer = null; }
   }
 
-  /**
-   * Snap the current video frame to the canvas, freeze, and analyze.
-   * If called from the button, it always runs.
-   * If called automatically, it's invoked from the loop only after
-   * the frame is already drawn.
-   */
-  function snapAndScan(manual) {
-    if (!qr.active || qr.frozen) return;
-    const v = qr.video;
-    if (!v || v.readyState < 2 || !v.videoWidth) {
-      if (manual) showToast('Camera not ready yet');
-      return;
+  function scanOnce() {
+    const video = qr.video;
+    if (!video || video.readyState < 2 || !video.videoWidth) return;
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    // Full native resolution — more pixels = better small-QR detection.
+    const maxDim = 1920;
+    const scale = Math.min(1, maxDim / Math.max(vw, vh));
+    const w = Math.max(1, Math.round(vw * scale));
+    const h = Math.max(1, Math.round(vh * scale));
+
+    if (qr.canvas.width !== w || qr.canvas.height !== h) {
+      qr.canvas.width = w;
+      qr.canvas.height = h;
     }
 
-    // Draw the current frame to the canvas (this is the freeze)
-    try { qr.ctx.drawImage(v, 0, 0, qr.frameW, qr.frameH); }
-    catch (err) { if (manual) showToast('Could not grab frame'); return; }
+    try { qr.ctx.drawImage(video, 0, 0, w, h); }
+    catch (_) { return; }
 
-    const found = detectOnCanvas(qr.canvas);
-    if (found) {
-      handleDetection(found);
-      return;
+    // --- Native detector (fast when present) ---
+    if (qr.detector) {
+      qr.detector.detect(qr.canvas)
+        .then(codes => {
+          if (!qr.active || qr.handling) return;
+          if (codes && codes.length && codes[0].rawValue) {
+            onDetected(codes[0].rawValue, 'native');
+          }
+        })
+        .catch(() => {});
     }
 
-    if (manual) {
-      showToast('No QR code found in the frame — try again');
-      // brief visual cue
-      qr.pill.textContent = '✕ No QR found';
-      qr.pill.classList.add('show', 'error');
-      setTimeout(() => { qr.pill.classList.remove('show', 'error'); qr.pill.textContent = '✓ QR detected'; }, 1000);
-    }
-  }
-
-  /**
-   * Run detection on the canvas — tries native BarcodeDetector (async)
-   * and jsQR (sync). Returns a normalized result or null.
-   * This is synchronous-only for jsQR; native result is handled via promise.
-   */
-  function detectOnCanvas(canvas) {
-    // Try jsQR first — synchronous
+    // --- jsQR (fallback, works everywhere) ---
     if (typeof window.jsQR === 'function') {
       let imageData;
-      try { imageData = qr.ctx.getImageData(0, 0, canvas.width, canvas.height); }
-      catch (err) { return null; }
+      try { imageData = qr.ctx.getImageData(0, 0, w, h); }
+      catch (_) { return; }
 
       let code = null;
       try {
-        code = window.jsQR(imageData.data, canvas.width, canvas.height, {
-          inversionAttempts: 'attemptBoth'
-        });
-      } catch (err) { /* ignore */ }
+        code = window.jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+      } catch (_) {}
 
       if (code && code.data) {
-        return { data: code.data, location: code.location };
+        onDetected(code.data, 'jsqr');
+        return;
       }
     }
 
-    // Fire-and-forget native detector (async). If it succeeds, it'll call handleDetection itself.
-    if ('BarcodeDetector' in window) {
-      try {
-        if (!qr._nativeDetector) {
-          qr._nativeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
-        }
-        qr._nativeDetector.detect(canvas)
-          .then(codes => {
-            if (!qr.active || qr.frozen) return;
-            if (codes && codes.length && codes[0].rawValue) {
-              const loc = codes[0].cornerPoints
-                ? { cornerPoints: codes[0].cornerPoints }
-                : null;
-              handleDetection({ data: codes[0].rawValue, location: loc });
-            }
-          })
-          .catch(() => {});
-      } catch (_) {}
-    }
-
-    return null;
+    qr.frameCount++;
   }
 
-  /**
-   * Called the moment a QR is decoded.
-   * Freezes the visible canvas (already shows the captured frame),
-   * draws an outline around the QR, shows the badge, then redirects.
-   */
-  function handleDetection(result) {
-    if (qr.frozen) return;
-    qr.frozen = true;
-    stopLoop();
-    try { qr.video.pause(); } catch (_) {}
+  function onDetected(rawData, source) {
+    if (qr.handling) return;
 
-    console.log('[QR] Detected raw:', result.data);
+    const now = Date.now();
 
-    // Draw the QR outline on the frozen canvas
-    drawOutlineOnCanvas(result.location);
+    // Require the SAME content twice within 1.5s → kills false positives.
+    if (rawData === qr.lastRaw && now - qr.lastRawTime < 1500) {
+      qr.lastRawCount++;
+    } else {
+      qr.lastRaw = rawData;
+      qr.lastRawCount = 1;
+      qr.lastRawTime = now;
+    }
 
-    // Hide the guide frame, show the outline element with a border style
-    qr.guide.classList.add('hidden');
+    if (qr.lastRawCount < 2) {
+      // First sighting — wait for confirmation on the next frame
+      return;
+    }
 
-    const certId = extractCertId(result.data);
+    qr.handling = true;
+
+    console.log('[QR] ✅ Confirmed (' + source + '):', rawData);
+
+    const certId = extractCertId(rawData);
 
     if (!certId) {
-      console.warn('[QR] Content is not a Lingo-Ville cert ID');
-      qr.pill.textContent = '✕ Not a Lingo‑Ville QR';
-      qr.pill.classList.add('show', 'error');
-      if (navigator.vibrate) try { navigator.vibrate([60, 40, 60]); } catch (_) {}
-
-      // Resume after a beat
+      console.warn('[QR] Content is not a Lingo‑Ville cert ID');
+      showToast('This QR code is not a Lingo‑Ville certificate');
+      // Pause processing for a moment, then resume scanning
       setTimeout(() => {
-        if (!qr.active) return;
-        qr.frozen = false;
-        qr.guide.classList.remove('hidden');
-        qr.outline.classList.remove('show');
-        qr.pill.classList.remove('show', 'error');
-        qr.pill.textContent = '✓ QR detected';
-        try { qr.video.play().catch(() => {}); } catch (_) {}
-        startLoop();
-      }, 1400);
+        qr.handling = false;
+        qr.lastRawCount = 0;
+        qr.lastRaw = '';
+      }, 1200);
       return;
     }
 
     console.log('[QR] ✅ Cert ID:', certId);
 
-    qr.pill.textContent = '✓ QR detected — opening…';
-    qr.pill.classList.remove('error');
-    qr.pill.classList.add('show');
-    qr.statusLine.textContent = 'QR decoded — loading certificate…';
+    // Vibrate
+    if (navigator.vibrate) {
+      try { navigator.vibrate([60, 40, 100]); } catch (_) {}
+    }
 
-    if (navigator.vibrate) try { navigator.vibrate([40, 30, 80]); } catch (_) {}
+    // Visual confirmation: green border + badge on the video
+    showDetectedOnVideo();
 
+    // Freeze the video so the user sees the detected frame
+    try { qr.video.pause(); } catch (_) {}
+
+    // Fill input right away (visible after modal closes)
+    const input = $('certInput');
+    if (input) input.value = certId;
+
+    // After a short beat, close and route
     setTimeout(() => {
       closeQrScanner();
-      const input = $('certInput');
-      if (input) input.value = certId;
-      setTimeout(() => setHash(certId), 60);
-    }, 750);
+
+      // Let the modal close animation finish before route change
+      const next = `#/${encodeURIComponent(certId)}`;
+      if (window.location.hash !== next) {
+        window.location.hash = next; // fires hashchange → handleRoute
+      } else {
+        // Same cert — force a re-verify
+        handleRoute();
+      }
+
+      // Reset for next time
+      qr.handling = false;
+      qr.lastRaw = '';
+      qr.lastRawCount = 0;
+    }, 550);
   }
 
-  function drawOutlineOnCanvas(location) {
-    if (!location) return;
-
-    let x, y, w, h;
-
-    // jsQR location object
-    if (location.topLeftCorner && location.bottomRightCorner) {
-      const tl = location.topLeftCorner;
-      const br = location.bottomRightCorner;
-      x = Math.min(tl.x, br.x);
-      y = Math.min(tl.y, br.y);
-      w = Math.abs(br.x - tl.x);
-      h = Math.abs(br.y - tl.y);
-      // Expand a touch
-      const pad = Math.max(8, Math.min(qr.frameW, qr.frameH) * 0.02);
-      x -= pad; y -= pad; w += pad * 2; h += pad * 2;
-    }
-    // Native BarcodeDetector cornerPoints
-    else if (location.cornerPoints && location.cornerPoints.length >= 4) {
-      const xs = location.cornerPoints.map(p => p.x);
-      const ys = location.cornerPoints.map(p => p.y);
-      const minX = Math.min(...xs), maxX = Math.max(...xs);
-      const minY = Math.min(...ys), maxY = Math.max(...ys);
-      x = minX; y = minY; w = maxX - minX; h = maxY - minY;
-      const pad = Math.max(8, Math.min(qr.frameW, qr.frameH) * 0.02);
-      x -= pad; y -= pad; w += pad * 2; h += pad * 2;
-    }
-    // Fallback — centered square
-    else {
-      const size = Math.min(qr.frameW, qr.frameH) * 0.55;
-      x = (qr.frameW - size) / 2;
-      y = (qr.frameH - size) / 2;
-      w = size; h = size;
-    }
-
-    // Clamp
-    x = Math.max(0, x); y = Math.max(0, y);
-    w = Math.min(qr.frameW - x, w); h = Math.min(qr.frameH - y, h);
-
-    // Position the DOM overlay. The canvas uses width:100% with natural
-    // aspect ratio, so we scale the pixel rect to a percentage.
-    const pctX = (x / qr.frameW) * 100;
-    const pctY = (y / qr.frameH) * 100;
-    const pctW = (w / qr.frameW) * 100;
-    const pctH = (h / qr.frameH) * 100;
-
-    qr.outline.style.left = pctX + '%';
-    qr.outline.style.top = pctY + '%';
-    qr.outline.style.width = pctW + '%';
-    qr.outline.style.height = pctH + '%';
-    qr.outline.classList.add('show');
+  function showDetectedOnVideo() {
+    if (!qr.videoWrapper) return;
+    qr.videoWrapper.classList.add('qr-detected');
+    const badge = document.createElement('div');
+    badge.className = 'qr-detected-badge';
+    badge.textContent = '✓ QR detected';
+    qr.videoWrapper.appendChild(badge);
   }
 
   function extractCertId(content) {
     if (!content) return '';
     const s = String(content).trim();
+
     if (/^https?:\/\//i.test(s)) {
       try {
         const url = new URL(s);
         const hash = (url.hash || '').replace(/^#\/?/, '').trim();
         if (hash) {
-          const d = decodeURIComponent(hash).toLowerCase();
-          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(d)) return d;
+          const decoded = decodeURIComponent(hash).toLowerCase();
+          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(decoded)) return decoded;
         }
         for (const p of ['id', 'cert', 'certid', 'certificate']) {
           const v = url.searchParams.get(p);
-          if (v && /^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/i.test(v.trim())) return v.trim().toLowerCase();
+          if (v && /^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/i.test(v.trim())) {
+            return v.trim().toLowerCase();
+          }
         }
         const parts = url.pathname.split('/').filter(Boolean);
         if (parts.length) {
@@ -690,6 +788,7 @@
       } catch (_) {}
       return '';
     }
+
     const plain = s.toLowerCase();
     if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(plain)) return plain;
     return '';
