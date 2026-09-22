@@ -324,7 +324,7 @@
   }
 
   // ===================================================================
-  // QR SCANNER — robust version
+  // QR SCANNER
   // ===================================================================
   const qr = {
     modal: null, video: null, videoWrapper: null, closeBtn: null,
@@ -334,11 +334,38 @@
     active: false,
     cameraStarting: false,
     detector: null,
-    scanMode: 'none',           // 'native' | 'jsqr' | 'both'
+    scanMode: 'none',
     lastScan: '', lastScanTime: 0,
-    frameCount: 0,              // for diagnostic logging
-    lastResult: 'none'          // for diagnostic logging
+    frameCount: 0,
+    frozen: false,
+    freezeCanvas: null,
+    freezeBadge: null
   };
+
+  // One-time animation + styles for the freeze overlay
+  function injectFreezeStyles() {
+    if (document.getElementById('qr-freeze-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'qr-freeze-styles';
+    s.textContent = `
+      @keyframes qrPop {
+        0%   { transform: translateX(-50%) scale(0.5); opacity: 0; }
+        60%  { transform: translateX(-50%) scale(1.1); opacity: 1; }
+        100% { transform: translateX(-50%) scale(1);   opacity: 1; }
+      }
+      @keyframes qrFlash {
+        0%   { opacity: 0; }
+        30%  { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      .qr-freeze-flash {
+        position: absolute; inset: 0; background: #00ff88;
+        pointer-events: none; z-index: 7;
+        animation: qrFlash 0.5s ease-out forwards;
+      }
+    `;
+    document.head.appendChild(s);
+  }
 
   function initQrScanner() {
     qr.modal        = $('qrModal');
@@ -350,6 +377,8 @@
     qr.retryBtn     = $('qrRetryBtn');
 
     if (!qr.modal) { console.warn('[QR] modal not found'); return; }
+
+    injectFreezeStyles();
 
     qr.canvas = document.createElement('canvas');
     qr.ctx = qr.canvas.getContext('2d', { willReadFrequently: true });
@@ -370,12 +399,10 @@
   }
 
   async function setupDetector() {
-    // Native BarcodeDetector (fastest when supported)
     if ('BarcodeDetector' in window) {
       try {
         if (typeof window.BarcodeDetector.getSupportedFormats === 'function') {
           const formats = await window.BarcodeDetector.getSupportedFormats();
-          console.log('[QR] Native supported formats:', formats);
           if (formats.includes('qr_code')) {
             qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
             console.log('[QR] Native BarcodeDetector ready');
@@ -387,17 +414,14 @@
       } catch (err) {
         console.warn('[QR] BarcodeDetector init failed:', err);
       }
-    } else {
-      console.log('[QR] BarcodeDetector not available in this browser');
     }
 
     if (typeof window.jsQR === 'function') {
       console.log('[QR] jsQR library loaded');
     } else {
-      console.warn('[QR] jsQR library NOT loaded — waiting for fallback CDN');
+      console.warn('[QR] jsQR library NOT loaded');
     }
 
-    // Determine strategy
     if (qr.detector && typeof window.jsQR === 'function') qr.scanMode = 'both';
     else if (qr.detector) qr.scanMode = 'native';
     else if (typeof window.jsQR === 'function') qr.scanMode = 'jsqr';
@@ -425,7 +449,6 @@
 
     if (!window.isSecureContext) {
       showToast('Camera requires HTTPS');
-      console.warn('[QR] Not a secure context');
       return;
     }
 
@@ -434,23 +457,21 @@
       return;
     }
 
-    // Re-probe backends (jsQR may have loaded lazily via fallback CDN)
     if (qr.scanMode === 'none' || !qr.detector) {
       await setupDetector();
     }
 
     if (qr.scanMode === 'none') {
-      // One more short wait for the fallback CDN
       await new Promise(r => setTimeout(r, 600));
       await setupDetector();
       if (qr.scanMode === 'none') {
         showToast('QR library failed to load. Please refresh.');
-        console.error('[QR] No scanning backend available');
         return;
       }
     }
 
     qr.active = true;
+    qr.frozen = false;
     qr.frameCount = 0;
     qr.modal.classList.add('open');
     qr.modal.setAttribute('aria-hidden', 'false');
@@ -462,6 +483,8 @@
   function closeQrScanner() {
     if (!qr.active) return;
     qr.active = false;
+    qr.frozen = false;
+    unfreezeFrame();
     stopCamera();
     qr.modal.classList.remove('open');
     qr.modal.setAttribute('aria-hidden', 'true');
@@ -470,15 +493,13 @@
   }
 
   async function startCamera() {
-    if (qr.cameraStarting) {
-      console.log('[QR] startCamera already in progress — skipping duplicate call');
-      return;
-    }
+    if (qr.cameraStarting) return;
     qr.cameraStarting = true;
 
     try {
       stopCamera();
       clearQrStatus();
+      unfreezeFrame();
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setQrStatus('Camera is not supported in this browser.', false);
@@ -497,18 +518,8 @@
       try {
         qr.stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (err) {
-        console.warn('[QR] getUserMedia error:', err && err.name, err);
-        let msg = 'Could not access the camera.';
-        let canRetry = true;
-
-        if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
-          msg = 'Camera permission denied. Please allow camera access and try again.';
-        } else if (err && (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError')) {
-          msg = 'No camera found on this device.';
-          canRetry = false;
-        } else if (err && err.name === 'NotReadableError') {
-          msg = 'Camera is in use by another app. Close it and retry.';
-        } else if (err && err.name === 'OverconstrainedError') {
+        console.warn('[QR] getUserMedia error:', err && err.name);
+        if (err && err.name === 'OverconstrainedError') {
           try {
             qr.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
           } catch (err2) {
@@ -516,11 +527,15 @@
             return;
           }
         } else {
-          setQrStatus(msg, canRetry);
-          return;
-        }
-        if (!qr.stream) {
-          setQrStatus(msg, canRetry);
+          let msg = 'Could not access the camera.';
+          if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+            msg = 'Camera permission denied. Please allow camera access and try again.';
+          } else if (err && (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError')) {
+            msg = 'No camera found on this device.';
+          } else if (err && err.name === 'NotReadableError') {
+            msg = 'Camera is in use by another app. Close it and retry.';
+          }
+          setQrStatus(msg, true);
           return;
         }
       }
@@ -535,15 +550,11 @@
 
       try {
         await qr.video.play();
-        console.log('[QR] Video playing, readyState =', qr.video.readyState);
       } catch (err) {
         console.warn('[QR] video.play() failed:', err);
       }
 
-      // Wait for actual video dimensions
       await waitForVideoReady();
-
-      // Start scan loop
       startScanLoop();
     } finally {
       qr.cameraStarting = false;
@@ -554,17 +565,12 @@
     return new Promise((resolve) => {
       if (qr.video.videoWidth > 0 && qr.video.readyState >= 2) return resolve();
       let done = false;
-      const finish = () => {
-        if (done) return;
-        done = true;
-        resolve();
-      };
+      const finish = () => { if (!done) { done = true; resolve(); } };
       qr.video.addEventListener('loadeddata', finish, { once: true });
       qr.video.addEventListener('playing', finish, { once: true });
       const poll = setInterval(() => {
         if (qr.video.videoWidth > 0 && qr.video.readyState >= 2) {
-          clearInterval(poll);
-          finish();
+          clearInterval(poll); finish();
         }
       }, 100);
       setTimeout(() => { clearInterval(poll); finish(); }, 3000);
@@ -580,47 +586,36 @@
     if (qr.video) qr.video.srcObject = null;
   }
 
-  // -------- Scan loop (setTimeout-based, more reliable on mobile than rAF) --------
   function startScanLoop() {
     stopScanLoop();
-    const SCAN_INTERVAL_MS = 120; // ~8 fps
+    if (qr.frozen) return;
+
+    const SCAN_INTERVAL_MS = 100; // 10 fps
 
     const tick = () => {
-      if (!qr.active) return;
-      try {
-        scanOnce();
-      } catch (err) {
-        console.warn('[QR] scanOnce error:', err);
-      }
+      if (!qr.active || qr.frozen) return;
+      try { scanOnce(); } catch (err) { console.warn('[QR] scanOnce error:', err); }
       qr.scanTimer = setTimeout(tick, SCAN_INTERVAL_MS);
     };
 
-    // Kick off after a brief delay to let the first frame settle
-    qr.scanTimer = setTimeout(tick, 250);
+    qr.scanTimer = setTimeout(tick, 200);
   }
 
   function stopScanLoop() {
-    if (qr.scanTimer) {
-      clearTimeout(qr.scanTimer);
-      qr.scanTimer = null;
-    }
+    if (qr.scanTimer) { clearTimeout(qr.scanTimer); qr.scanTimer = null; }
   }
 
   function scanOnce() {
     const video = qr.video;
     if (!video || video.readyState < 2 || !video.videoWidth) {
       qr.frameCount++;
-      if (qr.frameCount % 30 === 0) {
-        console.log('[QR] Waiting for video frames, readyState=' + video.readyState + ', videoWidth=' + video.videoWidth);
-      }
       return;
     }
 
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    // Higher resolution = better detection of small QR codes
-    const maxDim = 1024;
+    const maxDim = 1280;
     const scale = Math.min(1, maxDim / Math.max(vw, vh));
     const w = Math.max(1, Math.round(vw * scale));
     const h = Math.max(1, Math.round(vh * scale));
@@ -630,90 +625,260 @@
       qr.canvas.height = h;
     }
 
-    try {
-      qr.ctx.drawImage(video, 0, 0, w, h);
-    } catch (err) {
-      console.warn('[QR] drawImage failed:', err);
-      return;
-    }
+    try { qr.ctx.drawImage(video, 0, 0, w, h); }
+    catch (err) { return; }
 
     let imageData;
-    try {
-      imageData = qr.ctx.getImageData(0, 0, w, h);
-    } catch (err) {
-      console.warn('[QR] getImageData failed:', err);
-      return;
-    }
+    try { imageData = qr.ctx.getImageData(0, 0, w, h); }
+    catch (err) { return; }
 
     qr.frameCount++;
 
-    // --- Native detector (async) ---
+    // --- Native detector ---
     if (qr.detector) {
       qr.detector.detect(qr.canvas)
         .then(codes => {
-          if (!qr.active) return;
+          if (!qr.active || qr.frozen) return;
           if (codes && codes.length && codes[0].rawValue) {
-            qr.lastResult = 'native';
-            handleQrResult(codes[0].rawValue);
+            const loc = codes[0].cornerPoints
+              ? { cornerPoints: codes[0].cornerPoints }
+              : null;
+            onQrDetected(codes[0].rawValue, loc);
           }
         })
-        .catch(err => {
-          if (qr.frameCount % 30 === 0) {
-            console.warn('[QR] Native detect error:', err && err.message);
-          }
-        });
+        .catch(() => {});
     }
 
-    // --- jsQR (sync) ---
-    if (typeof window.jsQR === 'function') {
+    // --- jsQR ---
+    if (typeof window.jsQR === 'function' && !qr.frozen) {
       let code = null;
       try {
         code = window.jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
-      } catch (err) {
-        if (qr.frameCount % 30 === 0) console.warn('[QR] jsQR threw:', err);
-      }
+      } catch (err) {}
 
       if (code && code.data) {
-        qr.lastResult = 'jsqr';
-        handleQrResult(code.data);
+        onQrDetected(code.data, code.location);
         return;
       }
     }
 
-    // Diagnostic heartbeat every 30 frames (~3.6s)
-    if (qr.frameCount % 30 === 0) {
-      console.log('[QR] Scanned frame #' + qr.frameCount +
-        ' · ' + w + 'x' + h +
-        ' · strategy=' + qr.scanMode +
-        ' · lastResult=' + qr.lastResult);
+    if (qr.frameCount % 40 === 0) {
+      console.log('[QR] Frame #' + qr.frameCount + ' · ' + w + 'x' + h + ' · scanning…');
     }
   }
 
-  function handleQrResult(rawData) {
-    const now = Date.now();
-    if (rawData === qr.lastScan && now - qr.lastScanTime < 1500) return;
-    qr.lastScan = rawData;
-    qr.lastScanTime = now;
+  // ===================================================================
+  // FREEZE ON DETECTION
+  // ===================================================================
 
-    console.log('[QR] ✅ Detected content:', rawData);
+  /**
+   * Called the instant a QR is decoded.
+   * Freezes the visible frame, draws the captured image with the QR
+   * outlined, shows a checkmark, then proceeds.
+   */
+  function onQrDetected(rawData, location) {
+    if (qr.frozen) return; // already handling a detection
+    qr.frozen = true;
+    stopScanLoop();
+
+    console.log('[QR] ✅ Detected:', rawData);
 
     const certId = extractCertId(rawData);
+
+    // Freeze the frame on-screen with the box + badge
+    freezeFrame(location, certId ? 'ok' : 'bad');
+
     if (!certId) {
+      // Not a Lingo-Ville QR — show the message, then resume scanning
       showToast('This QR code is not a Lingo‑Ville certificate');
-      console.warn('[QR] QR content does not match expected format');
+      setTimeout(() => {
+        if (!qr.active) return;
+        unfreezeFrame();
+        qr.frozen = false;
+        startScanLoop();
+      }, 1400);
       return;
     }
 
-    console.log('[QR] ✅ Extracted cert ID:', certId);
+    console.log('[QR] ✅ Cert ID:', certId);
 
-    if (navigator.vibrate) { try { navigator.vibrate(80); } catch (_) {} }
+    if (navigator.vibrate) { try { navigator.vibrate([40, 30, 80]); } catch (_) {} }
 
-    closeQrScanner();
+    // Show the frozen frame for a beat so the user SEES the detection,
+    // then close the modal and start verification.
+    setTimeout(() => {
+      closeQrScanner();
+      const input = $('certInput');
+      if (input) input.value = certId;
+      setTimeout(() => setHash(certId), 60);
+    }, 900);
+  }
 
-    const input = $('certInput');
-    if (input) input.value = certId;
+  function freezeFrame(location, mode) {
+    const video = qr.video;
+    const wrapper = qr.videoWrapper;
 
-    setTimeout(() => setHash(certId), 80);
+    // Pause the video so the visible preview stops moving
+    try { video.pause(); } catch (_) {}
+
+    // Create freeze canvas
+    const canvas = document.createElement('canvas');
+    canvas.className = 'qr-freeze-canvas';
+    Object.assign(canvas.style, {
+      position: 'absolute',
+      inset: '0',
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      zIndex: '5',
+      display: 'block'
+    });
+
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const okColor = '#00ff88';
+    const badColor = '#ff5b5b';
+    const color = mode === 'ok' ? okColor : badColor;
+
+    // Draw the QR outline
+    const corners = getCorners(location, canvas.width, canvas.height);
+    if (corners) {
+      const pad = Math.max(8, canvas.width * 0.012);
+
+      // Dim everything outside the box
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.rect(0, 0, canvas.width, canvas.height);
+      // cut-out (counter-clockwise)
+      ctx.moveTo(corners.tl.x, corners.tl.y);
+      ctx.lineTo(corners.bl.x, corners.bl.y);
+      ctx.lineTo(corners.br.x, corners.br.y);
+      ctx.lineTo(corners.tr.x, corners.tr.y);
+      ctx.closePath();
+      ctx.fill('evenodd');
+      ctx.restore();
+
+      // Thick outline
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(4, canvas.width * 0.007);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(corners.tl.x, corners.tl.y);
+      ctx.lineTo(corners.tr.x, corners.tr.y);
+      ctx.lineTo(corners.br.x, corners.br.y);
+      ctx.lineTo(corners.bl.x, corners.bl.y);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Corner ticks
+      const tickLen = Math.max(20, canvas.width * 0.03);
+      ctx.lineWidth = Math.max(6, canvas.width * 0.011);
+      ctx.beginPath();
+      // TL
+      ctx.moveTo(corners.tl.x, corners.tl.y + tickLen);
+      ctx.lineTo(corners.tl.x, corners.tl.y);
+      ctx.lineTo(corners.tl.x + tickLen, corners.tl.y);
+      // TR
+      ctx.moveTo(corners.tr.x - tickLen, corners.tr.y);
+      ctx.lineTo(corners.tr.x, corners.tr.y);
+      ctx.lineTo(corners.tr.x, corners.tr.y + tickLen);
+      // BR
+      ctx.moveTo(corners.br.x, corners.br.y - tickLen);
+      ctx.lineTo(corners.br.x, corners.br.y);
+      ctx.lineTo(corners.br.x - tickLen, corners.br.y);
+      // BL
+      ctx.moveTo(corners.bl.x + tickLen, corners.bl.y);
+      ctx.lineTo(corners.bl.x, corners.bl.y);
+      ctx.lineTo(corners.bl.x, corners.bl.y - tickLen);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    wrapper.appendChild(canvas);
+    qr.freezeCanvas = canvas;
+
+    // Green flash
+    const flash = document.createElement('div');
+    flash.className = 'qr-freeze-flash';
+    if (mode === 'bad') flash.style.background = badColor;
+    wrapper.appendChild(flash);
+    setTimeout(() => flash.remove(), 600);
+
+    // Badge
+    const badge = document.createElement('div');
+    badge.className = 'qr-freeze-badge';
+    Object.assign(badge.style, {
+      position: 'absolute',
+      bottom: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: mode === 'ok' ? okColor : badColor,
+      color: '#0f172a',
+      padding: '10px 22px',
+      borderRadius: '999px',
+      fontWeight: '800',
+      fontSize: '0.9rem',
+      zIndex: '8',
+      boxShadow: '0 8px 24px ' + (mode === 'ok' ? 'rgba(0,255,136,0.45)' : 'rgba(255,91,91,0.45)'),
+      animation: 'qrPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+      whiteSpace: 'nowrap'
+    });
+    badge.textContent = mode === 'ok'
+      ? '✓ QR detected — reading…'
+      : '✕ Not a Lingo‑Ville QR';
+    wrapper.appendChild(badge);
+    qr.freezeBadge = badge;
+  }
+
+  function unfreezeFrame() {
+    if (qr.freezeCanvas) { qr.freezeCanvas.remove(); qr.freezeCanvas = null; }
+    if (qr.freezeBadge)  { qr.freezeBadge.remove();  qr.freezeBadge = null; }
+    // Remove any stray flash elements
+    qr.videoWrapper?.querySelectorAll('.qr-freeze-flash').forEach(el => el.remove());
+    // Resume the video for the next scan round
+    try { if (qr.video && qr.stream) qr.video.play().catch(() => {}); } catch (_) {}
+  }
+
+  /**
+   * Normalizes corner points from either jsQR (location object)
+   * or native BarcodeDetector (cornerPoints array).
+   */
+  function getCorners(location, w, h) {
+    if (!location) return null;
+
+    // jsQR — has topLeftCorner etc.
+    if (location.topLeftCorner && location.topRightCorner &&
+        location.bottomRightCorner && location.bottomLeftCorner) {
+      return {
+        tl: location.topLeftCorner,
+        tr: location.topRightCorner,
+        br: location.bottomRightCorner,
+        bl: location.bottomLeftCorner
+      };
+    }
+
+    // Native BarcodeDetector — cornerPoints array (TL, TR, BR, BL)
+    if (location.cornerPoints && location.cornerPoints.length >= 4) {
+      const [a, b, c, d] = location.cornerPoints;
+      return { tl: a, tr: b, br: c, bl: d };
+    }
+
+    // Fallback — draw a centered box
+    const size = Math.min(w, h) * 0.55;
+    const x = (w - size) / 2;
+    const y = (h - size) / 2;
+    return {
+      tl: { x, y },
+      tr: { x: x + size, y },
+      br: { x: x + size, y: y + size },
+      bl: { x, y: y + size }
+    };
   }
 
   function extractCertId(content) {
