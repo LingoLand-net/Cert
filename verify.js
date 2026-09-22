@@ -66,10 +66,7 @@
 
   function writeCertCache(certId, data) {
     try {
-      localStorage.setItem(
-        CERT_CACHE_PREFIX + certId,
-        JSON.stringify({ data, at: Date.now() })
-      );
+      localStorage.setItem(CERT_CACHE_PREFIX + certId, JSON.stringify({ data, at: Date.now() }));
     } catch (_) {}
   }
 
@@ -288,9 +285,7 @@
     if (prefetchedIds.has(certId)) return;
     if (readCertCache(certId)) return;
     prefetchedIds.add(certId);
-    fetchCert(certId)
-      .then(data => writeCertCache(certId, data))
-      .catch(() => {});
+    fetchCert(certId).then(d => writeCertCache(certId, d)).catch(() => {});
   }
 
   // ---------- Sharing ----------
@@ -300,23 +295,16 @@
     const url = getShareUrl();
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'Lingo‑Ville Certificate',
-          text: 'I just got certified by Lingo‑Ville 🎓',
-          url: url
-        });
+        await navigator.share({ title: 'Lingo‑Ville Certificate', text: 'I just got certified by Lingo‑Ville 🎓', url });
         return;
-      } catch (err) {
-        if (err && err.name === 'AbortError') return;
-      }
+      } catch (err) { if (err && err.name === 'AbortError') return; }
     }
     showToast('Open this page on your phone to post to Instagram Story');
   }
 
   function shareLinkedIn() {
     const url = encodeURIComponent(getShareUrl());
-    const share = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
-    window.open(share, '_blank', 'noopener,width=620,height=620');
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener,width=620,height=620');
   }
 
   async function shareCopyLink() {
@@ -336,15 +324,20 @@
   }
 
   // ===================================================================
-  // QR SCANNER — with BarcodeDetector (native) + jsQR (fallback)
+  // QR SCANNER — robust version
   // ===================================================================
   const qr = {
     modal: null, video: null, videoWrapper: null, closeBtn: null,
     status: null, statusText: null, retryBtn: null,
-    stream: null, rafId: null, canvas: null, ctx: null,
-    active: false, lastScan: '', lastScanTime: 0,
-    detector: null,            // native BarcodeDetector if available
-    scanMode: 'none'           // 'native' | 'jsqr' | 'none'
+    stream: null, scanTimer: null,
+    canvas: null, ctx: null,
+    active: false,
+    cameraStarting: false,
+    detector: null,
+    scanMode: 'none',           // 'native' | 'jsqr' | 'both'
+    lastScan: '', lastScanTime: 0,
+    frameCount: 0,              // for diagnostic logging
+    lastResult: 'none'          // for diagnostic logging
   };
 
   function initQrScanner() {
@@ -356,10 +349,7 @@
     qr.statusText   = $('qrStatusText');
     qr.retryBtn     = $('qrRetryBtn');
 
-    if (!qr.modal) {
-      console.warn('[QR] modal not found — scanner disabled');
-      return;
-    }
+    if (!qr.modal) { console.warn('[QR] modal not found'); return; }
 
     qr.canvas = document.createElement('canvas');
     qr.ctx = qr.canvas.getContext('2d', { willReadFrequently: true });
@@ -376,43 +366,44 @@
       if (e.key === 'Escape' && qr.active) closeQrScanner();
     });
 
-    // ---- Determine scan mode ----
-    // Prefer native BarcodeDetector (Chrome/Edge/Opera, Safari 17+)
-    if ('BarcodeDetector' in window) {
-      try {
-        qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-        qr.scanMode = 'native';
-        console.log('[QR] Using native BarcodeDetector API');
-      } catch (err) {
-        console.warn('[QR] BarcodeDetector init failed, will try jsQR:', err);
-      }
-    }
-
-    if (qr.scanMode === 'none' && typeof window.jsQR === 'function') {
-      qr.scanMode = 'jsqr';
-      console.log('[QR] Using jsQR library');
-    }
-
-    if (qr.scanMode === 'none') {
-      console.warn('[QR] No QR scanning backend available yet — will check again at scan time');
-    }
+    setupDetector();
   }
 
-  // Re-check for jsQR availability (it may load lazily via fallback CDN)
-  function ensureScanBackend() {
-    if (qr.scanMode !== 'none') return qr.scanMode;
+  async function setupDetector() {
+    // Native BarcodeDetector (fastest when supported)
     if ('BarcodeDetector' in window) {
       try {
-        qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-        qr.scanMode = 'native';
-        return 'native';
-      } catch (_) {}
+        if (typeof window.BarcodeDetector.getSupportedFormats === 'function') {
+          const formats = await window.BarcodeDetector.getSupportedFormats();
+          console.log('[QR] Native supported formats:', formats);
+          if (formats.includes('qr_code')) {
+            qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+            console.log('[QR] Native BarcodeDetector ready');
+          }
+        } else {
+          qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+          console.log('[QR] Native BarcodeDetector ready (no format probe)');
+        }
+      } catch (err) {
+        console.warn('[QR] BarcodeDetector init failed:', err);
+      }
+    } else {
+      console.log('[QR] BarcodeDetector not available in this browser');
     }
+
     if (typeof window.jsQR === 'function') {
-      qr.scanMode = 'jsqr';
-      return 'jsqr';
+      console.log('[QR] jsQR library loaded');
+    } else {
+      console.warn('[QR] jsQR library NOT loaded — waiting for fallback CDN');
     }
-    return 'none';
+
+    // Determine strategy
+    if (qr.detector && typeof window.jsQR === 'function') qr.scanMode = 'both';
+    else if (qr.detector) qr.scanMode = 'native';
+    else if (typeof window.jsQR === 'function') qr.scanMode = 'jsqr';
+    else qr.scanMode = 'none';
+
+    console.log('[QR] Scan strategy:', qr.scanMode);
   }
 
   function setQrStatus(message, showRetry = false) {
@@ -432,36 +423,38 @@
   async function openQrScanner() {
     if (!qr.modal) return;
 
-    // HTTPS / secure-context check
     if (!window.isSecureContext) {
-      showToast('Camera requires HTTPS. Please open the site over https://');
-      console.warn('[QR] Not a secure context — camera will not work on http:// or file://');
+      showToast('Camera requires HTTPS');
+      console.warn('[QR] Not a secure context');
       return;
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showToast('Camera not supported in this browser.');
+      showToast('Camera not supported in this browser');
       return;
     }
 
-    // Make sure we have a scanner backend before opening
-    const backend = ensureScanBackend();
-    if (backend === 'none') {
-      // Give jsQR fallback CDN a moment in case it's still loading
-      await new Promise(r => setTimeout(r, 400));
-      const retry = ensureScanBackend();
-      if (retry === 'none') {
-        showToast('QR library failed to load. Please refresh the page.');
-        console.error('[QR] No backend: BarcodeDetector missing AND window.jsQR not a function');
+    // Re-probe backends (jsQR may have loaded lazily via fallback CDN)
+    if (qr.scanMode === 'none' || !qr.detector) {
+      await setupDetector();
+    }
+
+    if (qr.scanMode === 'none') {
+      // One more short wait for the fallback CDN
+      await new Promise(r => setTimeout(r, 600));
+      await setupDetector();
+      if (qr.scanMode === 'none') {
+        showToast('QR library failed to load. Please refresh.');
+        console.error('[QR] No scanning backend available');
         return;
       }
     }
 
     qr.active = true;
+    qr.frameCount = 0;
     qr.modal.classList.add('open');
     qr.modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('qr-modal-open');
-
     clearQrStatus();
     await startCamera();
   }
@@ -477,87 +470,109 @@
   }
 
   async function startCamera() {
-    stopCamera();
-    clearQrStatus();
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setQrStatus('Camera is not supported in this browser. Please enter the certificate ID manually.', false);
+    if (qr.cameraStarting) {
+      console.log('[QR] startCamera already in progress — skipping duplicate call');
       return;
     }
-
-    const constraints = {
-      audio: false,
-      video: {
-        facingMode: { ideal: 'environment' },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    };
+    qr.cameraStarting = true;
 
     try {
-      qr.stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('[QR] Camera stream acquired');
-    } catch (err) {
-      console.warn('[QR] getUserMedia error:', err);
-      let msg = 'Could not access the camera.';
-      let canRetry = true;
+      stopCamera();
+      clearQrStatus();
 
-      if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
-        msg = 'Camera permission was denied. Please allow camera access in your browser settings and try again.';
-      } else if (err && (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError')) {
-        msg = 'No camera was found on this device. Please enter the certificate ID manually.';
-        canRetry = false;
-      } else if (err && err.name === 'NotReadableError') {
-        msg = 'The camera is already in use by another application. Close it and try again.';
-      } else if (err && err.name === 'OverconstrainedError') {
-        // Try any camera as a last resort
-        try {
-          qr.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
-          console.log('[QR] Fallback camera stream acquired');
-        } catch (err2) {
-          console.warn('[QR] Fallback getUserMedia error:', err2);
-          setQrStatus('Could not access the camera. Please enter the certificate ID manually.', false);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setQrStatus('Camera is not supported in this browser.', false);
+        return;
+      }
+
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width:  { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      };
+
+      try {
+        qr.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        console.warn('[QR] getUserMedia error:', err && err.name, err);
+        let msg = 'Could not access the camera.';
+        let canRetry = true;
+
+        if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+          msg = 'Camera permission denied. Please allow camera access and try again.';
+        } else if (err && (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError')) {
+          msg = 'No camera found on this device.';
+          canRetry = false;
+        } else if (err && err.name === 'NotReadableError') {
+          msg = 'Camera is in use by another app. Close it and retry.';
+        } else if (err && err.name === 'OverconstrainedError') {
+          try {
+            qr.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+          } catch (err2) {
+            setQrStatus('Could not access the camera.', false);
+            return;
+          }
+        } else {
+          setQrStatus(msg, canRetry);
           return;
         }
-      } else {
-        setQrStatus(msg, canRetry);
-        return;
+        if (!qr.stream) {
+          setQrStatus(msg, canRetry);
+          return;
+        }
       }
-      if (!qr.stream) {
-        setQrStatus(msg, canRetry);
-        return;
+
+      console.log('[QR] Stream acquired:', qr.stream.getVideoTracks()[0]?.getSettings?.());
+
+      qr.video.srcObject = qr.stream;
+      qr.video.setAttribute('playsinline', 'true');
+      qr.video.setAttribute('webkit-playsinline', 'true');
+      qr.video.muted = true;
+      qr.video.playsInline = true;
+
+      try {
+        await qr.video.play();
+        console.log('[QR] Video playing, readyState =', qr.video.readyState);
+      } catch (err) {
+        console.warn('[QR] video.play() failed:', err);
       }
+
+      // Wait for actual video dimensions
+      await waitForVideoReady();
+
+      // Start scan loop
+      startScanLoop();
+    } finally {
+      qr.cameraStarting = false;
     }
+  }
 
-    qr.video.srcObject = qr.stream;
-    qr.video.setAttribute('playsinline', 'true');
-    qr.video.setAttribute('muted', 'true');
-    qr.video.muted = true;
-
-    try {
-      await qr.video.play();
-      console.log('[QR] Video playing');
-    } catch (err) {
-      console.warn('[QR] video.play() failed:', err);
-    }
-
-    // Wait for metadata
-    if (qr.video.readyState < 2) {
-      await new Promise((resolve) => {
-        let done = false;
-        const finish = () => { if (!done) { done = true; resolve(); } };
-        qr.video.addEventListener('loadedmetadata', finish, { once: true });
-        setTimeout(finish, 1500);
-      });
-    }
-
-    // Start the scan loop
-    if (qr.rafId) cancelAnimationFrame(qr.rafId);
-    qr.rafId = requestAnimationFrame(scanFrame);
+  function waitForVideoReady() {
+    return new Promise((resolve) => {
+      if (qr.video.videoWidth > 0 && qr.video.readyState >= 2) return resolve();
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      qr.video.addEventListener('loadeddata', finish, { once: true });
+      qr.video.addEventListener('playing', finish, { once: true });
+      const poll = setInterval(() => {
+        if (qr.video.videoWidth > 0 && qr.video.readyState >= 2) {
+          clearInterval(poll);
+          finish();
+        }
+      }, 100);
+      setTimeout(() => { clearInterval(poll); finish(); }, 3000);
+    });
   }
 
   function stopCamera() {
-    if (qr.rafId) { cancelAnimationFrame(qr.rafId); qr.rafId = null; }
+    stopScanLoop();
     if (qr.stream) {
       qr.stream.getTracks().forEach(t => t.stop());
       qr.stream = null;
@@ -565,105 +580,140 @@
     if (qr.video) qr.video.srcObject = null;
   }
 
-  function scanFrame() {
-    if (!qr.active || !qr.video || !qr.video.videoWidth) {
-      qr.rafId = requestAnimationFrame(scanFrame);
+  // -------- Scan loop (setTimeout-based, more reliable on mobile than rAF) --------
+  function startScanLoop() {
+    stopScanLoop();
+    const SCAN_INTERVAL_MS = 120; // ~8 fps
+
+    const tick = () => {
+      if (!qr.active) return;
+      try {
+        scanOnce();
+      } catch (err) {
+        console.warn('[QR] scanOnce error:', err);
+      }
+      qr.scanTimer = setTimeout(tick, SCAN_INTERVAL_MS);
+    };
+
+    // Kick off after a brief delay to let the first frame settle
+    qr.scanTimer = setTimeout(tick, 250);
+  }
+
+  function stopScanLoop() {
+    if (qr.scanTimer) {
+      clearTimeout(qr.scanTimer);
+      qr.scanTimer = null;
+    }
+  }
+
+  function scanOnce() {
+    const video = qr.video;
+    if (!video || video.readyState < 2 || !video.videoWidth) {
+      qr.frameCount++;
+      if (qr.frameCount % 30 === 0) {
+        console.log('[QR] Waiting for video frames, readyState=' + video.readyState + ', videoWidth=' + video.videoWidth);
+      }
       return;
     }
 
-    const vw = qr.video.videoWidth;
-    const vh = qr.video.videoHeight;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
 
-    // --- Native path ---
-    if (qr.scanMode === 'native' && qr.detector) {
-      qr.detector.detect(qr.video)
-        .then(codes => {
-          if (!qr.active) return;
-          if (codes && codes.length > 0 && codes[0].rawValue) {
-            handleQrResult(codes[0].rawValue);
-            return;
-          }
-          qr.rafId = requestAnimationFrame(scanFrame);
-        })
-        .catch(err => {
-          // Native failed mid-flight — switch to jsQR if available
-          console.warn('[QR] BarcodeDetector.detect failed, switching to jsQR:', err);
-          if (typeof window.jsQR === 'function') {
-            qr.scanMode = 'jsqr';
-            qr.rafId = requestAnimationFrame(scanFrame);
-          } else {
-            qr.rafId = requestAnimationFrame(scanFrame);
-          }
-        });
-      return;
-    }
+    // Higher resolution = better detection of small QR codes
+    const maxDim = 1024;
+    const scale = Math.min(1, maxDim / Math.max(vw, vh));
+    const w = Math.max(1, Math.round(vw * scale));
+    const h = Math.max(1, Math.round(vh * scale));
 
-    // --- jsQR path ---
-    if (qr.scanMode === 'jsqr' && typeof window.jsQR === 'function') {
-      const maxDim = 640;
-      const scale = Math.min(1, maxDim / Math.max(vw, vh));
-      const w = Math.round(vw * scale);
-      const h = Math.round(vh * scale);
+    if (qr.canvas.width !== w || qr.canvas.height !== h) {
       qr.canvas.width = w;
       qr.canvas.height = h;
-      qr.ctx.drawImage(qr.video, 0, 0, w, h);
+    }
 
-      let imageData;
+    try {
+      qr.ctx.drawImage(video, 0, 0, w, h);
+    } catch (err) {
+      console.warn('[QR] drawImage failed:', err);
+      return;
+    }
+
+    let imageData;
+    try {
+      imageData = qr.ctx.getImageData(0, 0, w, h);
+    } catch (err) {
+      console.warn('[QR] getImageData failed:', err);
+      return;
+    }
+
+    qr.frameCount++;
+
+    // --- Native detector (async) ---
+    if (qr.detector) {
+      qr.detector.detect(qr.canvas)
+        .then(codes => {
+          if (!qr.active) return;
+          if (codes && codes.length && codes[0].rawValue) {
+            qr.lastResult = 'native';
+            handleQrResult(codes[0].rawValue);
+          }
+        })
+        .catch(err => {
+          if (qr.frameCount % 30 === 0) {
+            console.warn('[QR] Native detect error:', err && err.message);
+          }
+        });
+    }
+
+    // --- jsQR (sync) ---
+    if (typeof window.jsQR === 'function') {
+      let code = null;
       try {
-        imageData = qr.ctx.getImageData(0, 0, w, h);
-      } catch (_) {
-        qr.rafId = requestAnimationFrame(scanFrame);
-        return;
+        code = window.jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+      } catch (err) {
+        if (qr.frameCount % 30 === 0) console.warn('[QR] jsQR threw:', err);
       }
 
-      const code = window.jsQR(imageData.data, w, h, { inversionAttempts: 'dontInvert' });
       if (code && code.data) {
+        qr.lastResult = 'jsqr';
         handleQrResult(code.data);
         return;
       }
-      qr.rafId = requestAnimationFrame(scanFrame);
-      return;
     }
 
-    // No backend — try to re-acquire one
-    const backend = ensureScanBackend();
-    if (backend === 'none') {
-      setQrStatus('QR scanner is unavailable. Please enter the certificate ID manually.', false);
-      return;
+    // Diagnostic heartbeat every 30 frames (~3.6s)
+    if (qr.frameCount % 30 === 0) {
+      console.log('[QR] Scanned frame #' + qr.frameCount +
+        ' · ' + w + 'x' + h +
+        ' · strategy=' + qr.scanMode +
+        ' · lastResult=' + qr.lastResult);
     }
-    qr.rafId = requestAnimationFrame(scanFrame);
   }
 
   function handleQrResult(rawData) {
     const now = Date.now();
-    if (rawData === qr.lastScan && now - qr.lastScanTime < 1500) {
-      qr.rafId = requestAnimationFrame(scanFrame);
-      return;
-    }
+    if (rawData === qr.lastScan && now - qr.lastScanTime < 1500) return;
     qr.lastScan = rawData;
     qr.lastScanTime = now;
 
-    console.log('[QR] Detected content:', rawData);
-    const certId = extractCertId(rawData);
+    console.log('[QR] ✅ Detected content:', rawData);
 
+    const certId = extractCertId(rawData);
     if (!certId) {
       showToast('This QR code is not a Lingo‑Ville certificate');
-      qr.rafId = requestAnimationFrame(scanFrame);
+      console.warn('[QR] QR content does not match expected format');
       return;
     }
 
-    console.log('[QR] Extracted cert ID:', certId);
+    console.log('[QR] ✅ Extracted cert ID:', certId);
 
-    if (navigator.vibrate) {
-      try { navigator.vibrate(80); } catch (_) {}
-    }
+    if (navigator.vibrate) { try { navigator.vibrate(80); } catch (_) {} }
 
     closeQrScanner();
 
     const input = $('certInput');
     if (input) input.value = certId;
 
-    setTimeout(() => setHash(certId), 60);
+    setTimeout(() => setHash(certId), 80);
   }
 
   function extractCertId(content) {
@@ -678,8 +728,7 @@
           const decoded = decodeURIComponent(hash).toLowerCase();
           if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(decoded)) return decoded;
         }
-        const params = ['id', 'cert', 'certid', 'certificate'];
-        for (const p of params) {
+        for (const p of ['id', 'cert', 'certid', 'certificate']) {
           const v = url.searchParams.get(p);
           if (v && /^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/i.test(v.trim())) {
             return v.trim().toLowerCase();
