@@ -17,8 +17,10 @@
   <!-- Saves 100–400 ms by warming DNS + TLS before the first fetch. -->
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="dns-prefetch" href="https://res.cloudinary.com">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
   <!-- ===== OPEN GRAPH ===== -->
   <meta property="og:type" content="website" />
@@ -93,6 +95,9 @@
 
   <!-- ===== PDF.js ===== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+  <!-- ===== jsQR (QR code scanning) ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
   <!-- ===== INLINE CSS ===== -->
   <style>
@@ -314,6 +319,236 @@
       header, footer, .no-print, .toast, button, a[download] { display: none !important; }
       .pdf-viewer { box-shadow: none; border: 1px solid #cbd5e1; max-height: none; }
     }
+
+    /* ===================================================================
+       QR SCANNER MODAL
+       =================================================================== */
+    .qr-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .qr-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .qr-modal-content {
+      background: #0f172a;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -10px rgba(0,0,0,0.6);
+      transform: translateY(20px) scale(0.96);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .qr-modal.open .qr-modal-content {
+      transform: translateY(0) scale(1);
+    }
+    .qr-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .qr-modal-header h3 {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      margin: 0;
+    }
+    .qr-close-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      line-height: 1;
+      transition: background 0.2s;
+    }
+    .qr-close-btn:hover { background: rgba(255,255,255,0.16); }
+
+    .qr-video-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #000;
+      overflow: hidden;
+    }
+    #qrVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Scan frame overlay */
+    .qr-scan-frame {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-scan-frame::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center,
+                  transparent 0%,
+                  transparent 38%,
+                  rgba(0,0,0,0.5) 42%,
+                  rgba(0,0,0,0.5) 100%);
+    }
+    .qr-frame-corners {
+      position: relative;
+      width: 62%;
+      aspect-ratio: 1 / 1;
+      z-index: 2;
+    }
+    .qr-frame-corners::before,
+    .qr-frame-corners::after,
+    .qr-frame-corners > span::before,
+    .qr-frame-corners > span::after {
+      content: '';
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-color: #00aba5;
+      border-style: solid;
+      border-width: 0;
+    }
+    .qr-frame-corners::before {
+      top: 0; left: 0;
+      border-top-width: 4px;
+      border-left-width: 4px;
+      border-top-left-radius: 10px;
+    }
+    .qr-frame-corners::after {
+      top: 0; right: 0;
+      border-top-width: 4px;
+      border-right-width: 4px;
+      border-top-right-radius: 10px;
+    }
+    .qr-frame-corners > span::before {
+      bottom: 0; left: 0;
+      border-bottom-width: 4px;
+      border-left-width: 4px;
+      border-bottom-left-radius: 10px;
+    }
+    .qr-frame-corners > span::after {
+      bottom: 0; right: 0;
+      border-bottom-width: 4px;
+      border-right-width: 4px;
+      border-bottom-right-radius: 10px;
+    }
+
+    /* Moving scan line */
+    .qr-scan-line {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #00aba5, transparent);
+      box-shadow: 0 0 12px 2px rgba(0,171,165,0.7);
+      border-radius: 3px;
+      animation: qrScanLine 2.2s ease-in-out infinite;
+      z-index: 3;
+      top: 20%;
+    }
+    @keyframes qrScanLine {
+      0%   { top: 20%; opacity: 0.2; }
+      50%  { top: 78%; opacity: 1; }
+      100% { top: 20%; opacity: 0.2; }
+    }
+
+    .qr-hint {
+      color: rgba(255,255,255,0.75);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 16px 20px 20px;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .qr-hint strong { color: #fff; }
+
+    /* Camera error / status message inside modal */
+    .qr-status {
+      display: none;
+      padding: 40px 24px;
+      text-align: center;
+      color: #fff;
+    }
+    .qr-status.visible { display: block; }
+    .qr-status i { font-size: 2.5rem; color: #F8A233; display: block; margin-bottom: 12px; }
+    .qr-status p { font-size: 0.9rem; color: rgba(255,255,255,0.8); margin: 6px 0 0; line-height: 1.5; }
+    .qr-status .qr-permission-btn {
+      margin-top: 16px;
+      padding: 10px 22px;
+      background: #00aba5;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .qr-status .qr-permission-btn:hover { background: #008984; }
+
+    /* Scan QR button (below verify) */
+    .scan-qr-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: #fff;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      width: 100%;
+    }
+    .scan-qr-btn:hover {
+      border-color: #00aba5;
+      color: #008984;
+      background: #e6f7f6;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,171,165,0.15);
+    }
+    .scan-qr-btn svg {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.25s;
+    }
+    .scan-qr-btn:hover svg { transform: scale(1.1); }
+
+    /* Hide body scroll when modal open */
+    body.qr-modal-open { overflow: hidden; }
   </style>
 </head>
 <body class="antialiased text-slate-800">
@@ -353,6 +588,30 @@
               Verify
             </button>
           </div>
+
+          <!-- Divider with "or" -->
+          <div class="flex items-center gap-3 my-5">
+            <div class="flex-1 h-px bg-slate-200"></div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">or</span>
+            <div class="flex-1 h-px bg-slate-200"></div>
+          </div>
+
+          <!-- Scan QR button -->
+          <button type="button" id="scanQrBtn" class="scan-qr-btn" aria-label="Scan QR code with camera">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+              <rect x="7" y="7" width="4" height="4" />
+              <rect x="13" y="7" width="4" height="4" />
+              <rect x="7" y="13" width="4" height="4" />
+              <path d="M13 13h2v2" />
+              <path d="M15 17h4" />
+            </svg>
+            <span>Scan QR Code</span>
+          </button>
+          <p class="text-xs text-slate-400 mt-3">Uses your device camera · No image is stored</p>
         </form>
       </div>
     </section>
@@ -545,6 +804,45 @@
       </div>
     </div>
   </footer>
+
+  <!-- ===== QR SCANNER MODAL ===== -->
+  <div id="qrModal" class="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle" aria-hidden="true">
+    <div class="qr-modal-content">
+      <div class="qr-modal-header">
+        <h3 id="qrModalTitle">
+          <svg style="display:inline-block;vertical-align:-3px;width:18px;height:18px;margin-right:6px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+            <rect x="7" y="7" width="10" height="10" rx="1" />
+          </svg>
+          Scan Certificate QR
+        </h3>
+        <button type="button" class="qr-close-btn" id="qrCloseBtn" aria-label="Close scanner">✕</button>
+      </div>
+
+      <div class="qr-video-wrapper" id="qrVideoWrapper">
+        <video id="qrVideo" playsinline muted autoplay></video>
+        <div class="qr-scan-frame">
+          <div class="qr-frame-corners"><span></span></div>
+          <div class="qr-scan-line"></div>
+        </div>
+      </div>
+
+      <!-- Status / error message -->
+      <div class="qr-status" id="qrStatus">
+        <i class="qr-icon">📷</i>
+        <p id="qrStatusText">Requesting camera access…</p>
+        <button type="button" class="qr-permission-btn" id="qrRetryBtn" style="display:none;">Try Again</button>
+      </div>
+
+      <p class="qr-hint">
+        Align the QR code inside the frame.<br />
+        <strong>Scanning happens on your device.</strong>
+      </p>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 
