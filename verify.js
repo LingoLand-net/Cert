@@ -47,7 +47,7 @@
   }
 
   // ---------- Local cache ----------
-  const CERT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  const CERT_CACHE_TTL_MS = 5 * 60 * 1000;
   const CERT_CACHE_PREFIX = 'lv_cert_';
 
   function readCertCache(certId) {
@@ -61,9 +61,7 @@
         return null;
       }
       return parsed.data;
-    } catch (_) {
-      return null;
-    }
+    } catch (_) { return null; }
   }
 
   function writeCertCache(certId, data) {
@@ -72,9 +70,7 @@
         CERT_CACHE_PREFIX + certId,
         JSON.stringify({ data, at: Date.now() })
       );
-    } catch (_) {
-      // Storage full or blocked — ignore, this is best-effort
-    }
+    } catch (_) {}
   }
 
   // ---------- Hash routing ----------
@@ -110,17 +106,14 @@
   // ---------- PDF rendering ----------
   async function renderPdf(container, url) {
     container.innerHTML = '';
-
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     const renderScale = isMobile ? 1.25 : 1.5;
 
-    // Try PDF.js first
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error('FETCH_' + res.status);
       const buf = await res.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-
       const pagesToRender = isMobile ? 1 : pdf.numPages;
 
       for (let i = 1; i <= pagesToRender; i++) {
@@ -142,10 +135,8 @@
           wrapper.target = '_blank';
           wrapper.rel = 'noopener';
           wrapper.className = 'block relative cursor-pointer';
-
           container.removeChild(canvas);
           wrapper.appendChild(canvas);
-
           const pill = document.createElement('div');
           pill.className = 'absolute top-3 right-3 bg-white/95 text-slate-800 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg pointer-events-none';
           pill.innerHTML = `
@@ -156,7 +147,6 @@
           `;
           wrapper.appendChild(pill);
           container.appendChild(wrapper);
-
           const hint = document.createElement('p');
           hint.className = 'text-xs text-slate-400 text-center mt-3';
           hint.textContent = 'Opens in your device PDF viewer';
@@ -214,7 +204,6 @@
 
   async function renderResult(cert) {
     showOnly('result');
-
     renderStatusBanner(cert.Status);
     $('certIdBadge').textContent = cert.CertID;
     $('metaId').textContent = cert.CertID;
@@ -247,8 +236,7 @@
         </div>`;
       renderPdf(pdfViewer, cert.CertURL);
     } else {
-      pdfViewer.innerHTML = `
-        <div class="text-center py-16 text-slate-500 text-sm">Certificate file is not available.</div>`;
+      pdfViewer.innerHTML = `<div class="text-center py-16 text-slate-500 text-sm">Certificate file is not available.</div>`;
     }
   }
 
@@ -263,14 +251,9 @@
 
   async function handleRoute() {
     const certId = parseHash();
-
-    if (!certId) {
-      showOnly('search');
-      return;
-    }
+    if (!certId) { showOnly('search'); return; }
 
     const myLookup = ++currentLookup;
-
     const cached = readCertCache(certId);
     if (cached) {
       if (myLookup !== currentLookup) return;
@@ -279,7 +262,6 @@
     }
 
     showOnly('loading');
-
     try {
       const cert = await fetchCert(certId);
       if (myLookup !== currentLookup) return;
@@ -306,20 +288,16 @@
     if (prefetchedIds.has(certId)) return;
     if (readCertCache(certId)) return;
     prefetchedIds.add(certId);
-
     fetchCert(certId)
       .then(data => writeCertCache(certId, data))
-      .catch(() => { /* silent */ });
+      .catch(() => {});
   }
 
   // ---------- Sharing ----------
-  function getShareUrl() {
-    return window.location.href;
-  }
+  function getShareUrl() { return window.location.href; }
 
   async function shareInstagramStory() {
     const url = getShareUrl();
-
     if (navigator.share) {
       try {
         await navigator.share({
@@ -332,7 +310,6 @@
         if (err && err.name === 'AbortError') return;
       }
     }
-
     showToast('Open this page on your phone to post to Instagram Story');
   }
 
@@ -359,23 +336,15 @@
   }
 
   // ===================================================================
-  // QR SCANNER
+  // QR SCANNER — with BarcodeDetector (native) + jsQR (fallback)
   // ===================================================================
   const qr = {
-    modal:        null,
-    video:        null,
-    videoWrapper: null,
-    closeBtn:     null,
-    status:       null,
-    statusText:   null,
-    retryBtn:     null,
-    stream:       null,
-    rafId:        null,
-    canvas:       null,
-    ctx:          null,
-    active:       false,
-    lastScan:     '',
-    lastScanTime: 0
+    modal: null, video: null, videoWrapper: null, closeBtn: null,
+    status: null, statusText: null, retryBtn: null,
+    stream: null, rafId: null, canvas: null, ctx: null,
+    active: false, lastScan: '', lastScanTime: 0,
+    detector: null,            // native BarcodeDetector if available
+    scanMode: 'none'           // 'native' | 'jsqr' | 'none'
   };
 
   function initQrScanner() {
@@ -387,26 +356,63 @@
     qr.statusText   = $('qrStatusText');
     qr.retryBtn     = $('qrRetryBtn');
 
-    if (!qr.modal) return;
+    if (!qr.modal) {
+      console.warn('[QR] modal not found — scanner disabled');
+      return;
+    }
 
-    // Reusable offscreen canvas
     qr.canvas = document.createElement('canvas');
     qr.ctx = qr.canvas.getContext('2d', { willReadFrequently: true });
 
-    // Wire triggers
     $('scanQrBtn')?.addEventListener('click', openQrScanner);
     qr.closeBtn?.addEventListener('click', closeQrScanner);
     qr.retryBtn?.addEventListener('click', startCamera);
 
-    // Close on backdrop click
     qr.modal.addEventListener('click', (e) => {
       if (e.target === qr.modal) closeQrScanner();
     });
 
-    // Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && qr.active) closeQrScanner();
     });
+
+    // ---- Determine scan mode ----
+    // Prefer native BarcodeDetector (Chrome/Edge/Opera, Safari 17+)
+    if ('BarcodeDetector' in window) {
+      try {
+        qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        qr.scanMode = 'native';
+        console.log('[QR] Using native BarcodeDetector API');
+      } catch (err) {
+        console.warn('[QR] BarcodeDetector init failed, will try jsQR:', err);
+      }
+    }
+
+    if (qr.scanMode === 'none' && typeof window.jsQR === 'function') {
+      qr.scanMode = 'jsqr';
+      console.log('[QR] Using jsQR library');
+    }
+
+    if (qr.scanMode === 'none') {
+      console.warn('[QR] No QR scanning backend available yet — will check again at scan time');
+    }
+  }
+
+  // Re-check for jsQR availability (it may load lazily via fallback CDN)
+  function ensureScanBackend() {
+    if (qr.scanMode !== 'none') return qr.scanMode;
+    if ('BarcodeDetector' in window) {
+      try {
+        qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        qr.scanMode = 'native';
+        return 'native';
+      } catch (_) {}
+    }
+    if (typeof window.jsQR === 'function') {
+      qr.scanMode = 'jsqr';
+      return 'jsqr';
+    }
+    return 'none';
   }
 
   function setQrStatus(message, showRetry = false) {
@@ -426,10 +432,29 @@
   async function openQrScanner() {
     if (!qr.modal) return;
 
-    // Bail out if jsQR isn't available
-    if (typeof window.jsQR !== 'function') {
-      showToast('QR scanner failed to load. Please refresh the page.');
+    // HTTPS / secure-context check
+    if (!window.isSecureContext) {
+      showToast('Camera requires HTTPS. Please open the site over https://');
+      console.warn('[QR] Not a secure context — camera will not work on http:// or file://');
       return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast('Camera not supported in this browser.');
+      return;
+    }
+
+    // Make sure we have a scanner backend before opening
+    const backend = ensureScanBackend();
+    if (backend === 'none') {
+      // Give jsQR fallback CDN a moment in case it's still loading
+      await new Promise(r => setTimeout(r, 400));
+      const retry = ensureScanBackend();
+      if (retry === 'none') {
+        showToast('QR library failed to load. Please refresh the page.');
+        console.error('[QR] No backend: BarcodeDetector missing AND window.jsQR not a function');
+        return;
+      }
     }
 
     qr.active = true;
@@ -444,9 +469,7 @@
   function closeQrScanner() {
     if (!qr.active) return;
     qr.active = false;
-
     stopCamera();
-
     qr.modal.classList.remove('open');
     qr.modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('qr-modal-open');
@@ -454,17 +477,14 @@
   }
 
   async function startCamera() {
-    // Clean up any existing stream first
     stopCamera();
     clearQrStatus();
 
-    // Check browser support
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setQrStatus('Camera is not supported in this browser. Please enter the certificate ID manually.', false);
       return;
     }
 
-    // Prefer the rear camera on mobile
     const constraints = {
       audio: false,
       video: {
@@ -476,73 +496,77 @@
 
     try {
       qr.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('[QR] Camera stream acquired');
     } catch (err) {
-      console.warn('Camera error:', err);
+      console.warn('[QR] getUserMedia error:', err);
       let msg = 'Could not access the camera.';
-      if (err && err.name === 'NotAllowedError') {
+      let canRetry = true;
+
+      if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
         msg = 'Camera permission was denied. Please allow camera access in your browser settings and try again.';
-      } else if (err && err.name === 'NotFoundError' || err && err.name === 'DevicesNotFoundError') {
+      } else if (err && (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError')) {
         msg = 'No camera was found on this device. Please enter the certificate ID manually.';
+        canRetry = false;
       } else if (err && err.name === 'NotReadableError') {
         msg = 'The camera is already in use by another application. Close it and try again.';
       } else if (err && err.name === 'OverconstrainedError') {
-        // Fall back to any camera
+        // Try any camera as a last resort
         try {
           qr.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+          console.log('[QR] Fallback camera stream acquired');
         } catch (err2) {
+          console.warn('[QR] Fallback getUserMedia error:', err2);
           setQrStatus('Could not access the camera. Please enter the certificate ID manually.', false);
           return;
         }
       } else {
-        setQrStatus(msg, true);
+        setQrStatus(msg, canRetry);
         return;
       }
       if (!qr.stream) {
-        setQrStatus(msg, true);
+        setQrStatus(msg, canRetry);
         return;
       }
     }
 
-    // Attach stream to video
     qr.video.srcObject = qr.stream;
     qr.video.setAttribute('playsinline', 'true');
+    qr.video.setAttribute('muted', 'true');
+    qr.video.muted = true;
 
     try {
       await qr.video.play();
+      console.log('[QR] Video playing');
     } catch (err) {
-      console.warn('Video play failed:', err);
+      console.warn('[QR] video.play() failed:', err);
     }
 
-    // Ensure video metadata is loaded before scanning
+    // Wait for metadata
     if (qr.video.readyState < 2) {
       await new Promise((resolve) => {
-        qr.video.addEventListener('loadedmetadata', resolve, { once: true });
-        // Safety timeout
-        setTimeout(resolve, 1500);
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        qr.video.addEventListener('loadedmetadata', finish, { once: true });
+        setTimeout(finish, 1500);
       });
     }
 
-    // Start scan loop
+    // Start the scan loop
     if (qr.rafId) cancelAnimationFrame(qr.rafId);
     qr.rafId = requestAnimationFrame(scanFrame);
   }
 
   function stopCamera() {
-    if (qr.rafId) {
-      cancelAnimationFrame(qr.rafId);
-      qr.rafId = null;
-    }
+    if (qr.rafId) { cancelAnimationFrame(qr.rafId); qr.rafId = null; }
     if (qr.stream) {
       qr.stream.getTracks().forEach(t => t.stop());
       qr.stream = null;
     }
-    if (qr.video) {
-      qr.video.srcObject = null;
-    }
+    if (qr.video) qr.video.srcObject = null;
   }
 
   function scanFrame() {
-    if (!qr.active || !qr.video || qr.video.readyState !== qr.video.HAVE_ENOUGH_DATA) {
+    if (!qr.active || !qr.video || !qr.video.videoWidth) {
       qr.rafId = requestAnimationFrame(scanFrame);
       return;
     }
@@ -550,46 +574,68 @@
     const vw = qr.video.videoWidth;
     const vh = qr.video.videoHeight;
 
-    if (!vw || !vh) {
+    // --- Native path ---
+    if (qr.scanMode === 'native' && qr.detector) {
+      qr.detector.detect(qr.video)
+        .then(codes => {
+          if (!qr.active) return;
+          if (codes && codes.length > 0 && codes[0].rawValue) {
+            handleQrResult(codes[0].rawValue);
+            return;
+          }
+          qr.rafId = requestAnimationFrame(scanFrame);
+        })
+        .catch(err => {
+          // Native failed mid-flight — switch to jsQR if available
+          console.warn('[QR] BarcodeDetector.detect failed, switching to jsQR:', err);
+          if (typeof window.jsQR === 'function') {
+            qr.scanMode = 'jsqr';
+            qr.rafId = requestAnimationFrame(scanFrame);
+          } else {
+            qr.rafId = requestAnimationFrame(scanFrame);
+          }
+        });
+      return;
+    }
+
+    // --- jsQR path ---
+    if (qr.scanMode === 'jsqr' && typeof window.jsQR === 'function') {
+      const maxDim = 640;
+      const scale = Math.min(1, maxDim / Math.max(vw, vh));
+      const w = Math.round(vw * scale);
+      const h = Math.round(vh * scale);
+      qr.canvas.width = w;
+      qr.canvas.height = h;
+      qr.ctx.drawImage(qr.video, 0, 0, w, h);
+
+      let imageData;
+      try {
+        imageData = qr.ctx.getImageData(0, 0, w, h);
+      } catch (_) {
+        qr.rafId = requestAnimationFrame(scanFrame);
+        return;
+      }
+
+      const code = window.jsQR(imageData.data, w, h, { inversionAttempts: 'dontInvert' });
+      if (code && code.data) {
+        handleQrResult(code.data);
+        return;
+      }
       qr.rafId = requestAnimationFrame(scanFrame);
       return;
     }
 
-    // Downscale for performance — QR scanning doesn't need full resolution
-    const maxDim = 640;
-    const scale = Math.min(1, maxDim / Math.max(vw, vh));
-    const w = Math.round(vw * scale);
-    const h = Math.round(vh * scale);
-
-    qr.canvas.width = w;
-    qr.canvas.height = h;
-
-    qr.ctx.drawImage(qr.video, 0, 0, w, h);
-
-    let imageData;
-    try {
-      imageData = qr.ctx.getImageData(0, 0, w, h);
-    } catch (_) {
-      qr.rafId = requestAnimationFrame(scanFrame);
+    // No backend — try to re-acquire one
+    const backend = ensureScanBackend();
+    if (backend === 'none') {
+      setQrStatus('QR scanner is unavailable. Please enter the certificate ID manually.', false);
       return;
     }
-
-    const code = window.jsQR(imageData.data, w, h, {
-      inversionAttempts: 'dontInvert'
-    });
-
-    if (code && code.data) {
-      handleQrResult(code.data);
-      return;
-    }
-
     qr.rafId = requestAnimationFrame(scanFrame);
   }
 
   function handleQrResult(rawData) {
     const now = Date.now();
-
-    // Debounce identical scans
     if (rawData === qr.lastScan && now - qr.lastScanTime < 1500) {
       qr.rafId = requestAnimationFrame(scanFrame);
       return;
@@ -597,56 +643,41 @@
     qr.lastScan = rawData;
     qr.lastScanTime = now;
 
+    console.log('[QR] Detected content:', rawData);
     const certId = extractCertId(rawData);
 
     if (!certId) {
-      // Not a Lingo-Ville QR — show hint and keep scanning
       showToast('This QR code is not a Lingo‑Ville certificate');
       qr.rafId = requestAnimationFrame(scanFrame);
       return;
     }
 
-    // Success — vibrate if available, then navigate
+    console.log('[QR] Extracted cert ID:', certId);
+
     if (navigator.vibrate) {
       try { navigator.vibrate(80); } catch (_) {}
     }
 
     closeQrScanner();
 
-    // Fill the input and trigger verification
     const input = $('certInput');
     if (input) input.value = certId;
 
-    // Small delay so the modal-close animation doesn't fight the route change
     setTimeout(() => setHash(certId), 60);
   }
 
-  /**
-   * Extracts a certificate ID from arbitrary QR content.
-   * Accepts:
-   *  - Full URL:  https://cert.lingo-ville.com/#/encom-26abk-b1
-   *  - Full URL:  https://cert.lingo-ville.com/?id=encom-26abk-b1
-   *  - Plain ID:  encom-26abk-b1
-   */
   function extractCertId(content) {
     if (!content) return '';
     const s = String(content).trim();
 
-    // URL form
     if (/^https?:\/\//i.test(s)) {
       try {
         const url = new URL(s);
-
-        // 1) Hash: #/certid or #certid
         const hash = (url.hash || '').replace(/^#\/?/, '').trim();
         if (hash) {
           const decoded = decodeURIComponent(hash).toLowerCase();
-          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(decoded)) {
-            return decoded;
-          }
+          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(decoded)) return decoded;
         }
-
-        // 2) Query params
         const params = ['id', 'cert', 'certid', 'certificate'];
         for (const p of params) {
           const v = url.searchParams.get(p);
@@ -654,27 +685,17 @@
             return v.trim().toLowerCase();
           }
         }
-
-        // 3) Last path segment
         const parts = url.pathname.split('/').filter(Boolean);
         if (parts.length) {
           const last = parts[parts.length - 1].replace(/\.[a-z0-9]+$/i, '').trim();
-          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/i.test(last)) {
-            return last.toLowerCase();
-          }
+          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/i.test(last)) return last.toLowerCase();
         }
-      } catch (_) {
-        // fall through to plain-ID check
-      }
+      } catch (_) {}
       return '';
     }
 
-    // Plain ID form
     const plain = s.toLowerCase();
-    if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(plain)) {
-      return plain;
-    }
-
+    if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(plain)) return plain;
     return '';
   }
 
@@ -712,7 +733,6 @@
 
   // ---------- Boot ----------
   $('year').textContent = new Date().getFullYear();
-
   const initial = parseHash();
   if (initial) $('certInput').value = initial;
 
