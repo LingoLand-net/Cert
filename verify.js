@@ -72,24 +72,21 @@
 
   // ---------- Hash routing ----------
   function parseHash() {
-    const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
+    const raw = (window.location.hash || '').replace(/^#!?\/?/, '').trim();
     return raw ? decodeURIComponent(raw).toLowerCase() : '';
   }
 
   function setHash(certId) {
     const next = `#/${encodeURIComponent(certId)}`;
     if (window.location.hash !== next) {
-      // Setting location.hash fires hashchange, which calls handleRoute().
       window.location.hash = next;
     } else {
-      // Same hash — force re-run
       handleRoute();
     }
   }
 
   function clearHash() {
     if (window.location.hash) {
-      // Use replace to avoid polluting history
       history.replaceState(null, '', window.location.pathname);
     }
   }
@@ -328,7 +325,7 @@
   }
 
   // ===================================================================
-  // QR SCANNER — clean, simple, reliable
+  // QR SCANNER
   // ===================================================================
   const qr = {
     modal: null, video: null, videoWrapper: null, closeBtn: null,
@@ -341,7 +338,7 @@
     detector: null,
     frameCount: 0,
     lastRaw: '', lastRawCount: 0, lastRawTime: 0,
-    handling: false   // true while a detection is being processed
+    handling: false
   };
 
   function injectQrStyles() {
@@ -416,7 +413,6 @@
       if (e.key === 'Escape' && qr.active) closeQrScanner();
     });
 
-    // Async — BarcodeDetector probe
     probeDetector();
   }
 
@@ -470,7 +466,6 @@
       return;
     }
 
-    // Make sure the jsQR fallback is present
     if (typeof window.jsQR !== 'function' && !qr.detector) {
       await new Promise(r => setTimeout(r, 500));
       if (typeof window.jsQR !== 'function' && !qr.detector) {
@@ -523,7 +518,6 @@
         return;
       }
 
-      // Progressive fallback — try the most specific constraints first.
       const attempts = [
         { audio: false, video: {
             facingMode: { ideal: 'environment' },
@@ -611,7 +605,7 @@
 
   function startScanLoop() {
     stopScanLoop();
-    const INTERVAL = 90; // ~11 fps
+    const INTERVAL = 90;
 
     const tick = () => {
       if (!qr.active || qr.handling) return;
@@ -633,7 +627,6 @@
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    // Full native resolution — more pixels = better small-QR detection.
     const maxDim = 1920;
     const scale = Math.min(1, maxDim / Math.max(vw, vh));
     const w = Math.max(1, Math.round(vw * scale));
@@ -647,7 +640,6 @@
     try { qr.ctx.drawImage(video, 0, 0, w, h); }
     catch (_) { return; }
 
-    // --- Native detector (fast when present) ---
     if (qr.detector) {
       qr.detector.detect(qr.canvas)
         .then(codes => {
@@ -659,7 +651,6 @@
         .catch(() => {});
     }
 
-    // --- jsQR (fallback, works everywhere) ---
     if (typeof window.jsQR === 'function') {
       let imageData;
       try { imageData = qr.ctx.getImageData(0, 0, w, h); }
@@ -684,7 +675,6 @@
 
     const now = Date.now();
 
-    // Require the SAME content twice within 1.5s → kills false positives.
     if (rawData === qr.lastRaw && now - qr.lastRawTime < 1500) {
       qr.lastRawCount++;
     } else {
@@ -693,21 +683,18 @@
       qr.lastRawTime = now;
     }
 
-    if (qr.lastRawCount < 2) {
-      // First sighting — wait for confirmation on the next frame
-      return;
-    }
+    if (qr.lastRawCount < 2) return;
 
     qr.handling = true;
 
-    console.log('[QR] ✅ Confirmed (' + source + '):', rawData);
+    console.log('[QR] ✅ Confirmed (' + source + '):', JSON.stringify(rawData));
 
     const certId = extractCertId(rawData);
+    console.log('[QR] → extracted cert ID:', JSON.stringify(certId));
 
     if (!certId) {
-      console.warn('[QR] Content is not a Lingo‑Ville cert ID');
-      showToast('This QR code is not a Lingo‑Ville certificate');
-      // Pause processing for a moment, then resume scanning
+      console.warn('[QR] ❌ Empty cert ID after extraction');
+      showToast('Could not read the QR code. Try again.');
       setTimeout(() => {
         qr.handling = false;
         qr.lastRawCount = 0;
@@ -716,37 +703,26 @@
       return;
     }
 
-    console.log('[QR] ✅ Cert ID:', certId);
-
-    // Vibrate
     if (navigator.vibrate) {
       try { navigator.vibrate([60, 40, 100]); } catch (_) {}
     }
 
-    // Visual confirmation: green border + badge on the video
     showDetectedOnVideo();
-
-    // Freeze the video so the user sees the detected frame
     try { qr.video.pause(); } catch (_) {}
 
-    // Fill input right away (visible after modal closes)
     const input = $('certInput');
     if (input) input.value = certId;
 
-    // After a short beat, close and route
     setTimeout(() => {
       closeQrScanner();
 
-      // Let the modal close animation finish before route change
       const next = `#/${encodeURIComponent(certId)}`;
       if (window.location.hash !== next) {
-        window.location.hash = next; // fires hashchange → handleRoute
+        window.location.hash = next;
       } else {
-        // Same cert — force a re-verify
         handleRoute();
       }
 
-      // Reset for next time
       qr.handling = false;
       qr.lastRaw = '';
       qr.lastRawCount = 0;
@@ -762,36 +738,92 @@
     qr.videoWrapper.appendChild(badge);
   }
 
+  // ===================================================================
+  // extractCertId — MAXIMALLY PERMISSIVE
+  // ===================================================================
+  //
+  // Strategy:
+  //   • If it looks like a URL → pick the most likely ID:
+  //       hash  →  query param  →  last path segment  →  whole URL
+  //   • Otherwise → return the raw content as-is (trimmed)
+  //
+  // Never rejects. Never enforces a format. If we can't decide,
+  // the raw string is passed through and the backend decides.
+  //
   function extractCertId(content) {
-    if (!content) return '';
-    const s = String(content).trim();
+    if (content == null) return '';
+    let s = String(content).trim();
 
-    if (/^https?:\/\//i.test(s)) {
-      try {
-        const url = new URL(s);
-        const hash = (url.hash || '').replace(/^#\/?/, '').trim();
-        if (hash) {
-          const decoded = decodeURIComponent(hash).toLowerCase();
-          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(decoded)) return decoded;
-        }
-        for (const p of ['id', 'cert', 'certid', 'certificate']) {
-          const v = url.searchParams.get(p);
-          if (v && /^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/i.test(v.trim())) {
-            return v.trim().toLowerCase();
-          }
-        }
-        const parts = url.pathname.split('/').filter(Boolean);
-        if (parts.length) {
-          const last = parts[parts.length - 1].replace(/\.[a-z0-9]+$/i, '').trim();
-          if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/i.test(last)) return last.toLowerCase();
-        }
-      } catch (_) {}
-      return '';
+    // Strip surrounding quotes if present
+    if ((s.startsWith('"') && s.endsWith('"')) ||
+        (s.startsWith("'") && s.endsWith("'"))) {
+      s = s.slice(1, -1).trim();
     }
 
-    const plain = s.toLowerCase();
-    if (/^[a-z0-9]+(?:-[a-z0-9]+){1,5}$/.test(plain)) return plain;
-    return '';
+    // Strip common "Certificate ID:" prefixes (case-insensitive)
+    s = s.replace(/^(certificate\s*(id)?|cert\s*id|cert)\s*[:\-–]\s*/i, '').trim();
+
+    if (!s) return '';
+
+    // --- URL form ---
+    if (/^https?:\/\//i.test(s)) {
+      let url;
+      try { url = new URL(s); } catch (_) {
+        return s.toLowerCase();
+      }
+
+      // 1) Hash fragment — #/abc, #abc, #!/abc
+      if (url.hash) {
+        const rawHash = url.hash.replace(/^#!?\/?/, '').trim();
+        if (rawHash) {
+          // Drop sub-query parts inside the hash
+          const head = rawHash.split(/[?&#]/)[0];
+          const decoded = safeDecode(head).replace(/\/+$/, '').trim();
+          if (decoded) return decoded.toLowerCase();
+        }
+      }
+
+      // 2) Any query parameter value (prefer named ones)
+      const preferred = ['id', 'cert', 'certid', 'certificate', 'certificateid', 'code'];
+      for (const key of preferred) {
+        const v = url.searchParams.get(key);
+        if (v && v.trim()) return v.trim().toLowerCase();
+      }
+      // Any other query param (first non-empty)
+      for (const [, v] of url.searchParams.entries()) {
+        if (v && v.trim()) return v.trim().toLowerCase();
+      }
+
+      // 3) Last path segment (skip generic page names)
+      const skip = new Set([
+        'verify', 'cert', 'certificate', 'certificates',
+        'index', 'index.html', 'home', ''
+      ]);
+      const parts = url.pathname.split('/').filter(Boolean);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const seg = parts[i].replace(/\.[a-z0-9]+$/i, '').trim();
+        if (!seg) continue;
+        if (skip.has(seg.toLowerCase())) continue;
+        return safeDecode(seg).toLowerCase();
+      }
+
+      // 4) Nothing useful — pass the whole URL through
+      return s.toLowerCase();
+    }
+
+    // --- Plain text: take the first non-empty line ---
+    const lines = s.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+    if (lines.length) {
+      // Prefer the longest line (usually the meaningful one)
+      const best = lines.sort((a, b) => b.length - a.length)[0];
+      return best.toLowerCase();
+    }
+
+    return s.toLowerCase();
+  }
+
+  function safeDecode(v) {
+    try { return decodeURIComponent(v); } catch (_) { return v; }
   }
 
   // ---------- Events ----------
@@ -805,7 +837,7 @@
   $('certInput').addEventListener('input', (e) => {
     clearTimeout(prefetchTimer);
     const val = e.target.value.trim().toLowerCase();
-    if (!/^[a-z0-9]+(-[a-z0-9]+){2,4}$/.test(val)) return;
+    if (val.length < 3) return;
     prefetchTimer = setTimeout(() => prefetchCert(val), 400);
   });
 
