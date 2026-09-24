@@ -96,7 +96,10 @@
   <!-- ===== PDF.js ===== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-  <!-- ===== jsQR (QR code scanning) — fallback for browsers without BarcodeDetector ===== -->
+  <!-- ===== ZXing (robust — handles stylized/rounded/tinted QR codes) ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+
+  <!-- ===== jsQR (fallback decoder) ===== -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/jsqr@1.4.0/dist/jsQR.js';document.head.appendChild(s);"></script>
   
   <!-- ===== INLINE CSS ===== -->

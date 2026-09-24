@@ -314,7 +314,7 @@
   }
 
   // ===================================================================
-  // QR SCANNER
+  // QR SCANNER — ZXing (primary) + jsQR (fallback)
   // ===================================================================
   const qr = {
     modal: null, video: null, videoWrapper: null, closeBtn: null,
@@ -324,12 +324,15 @@
     canvas: null, ctx: null,
     active: false,
     starting: false,
-    detector: null,
     frameCount: 0,
     lastScanMs: 0,
     lastRaw: '', lastRawCount: 0, lastRawTime: 0,
     handling: false,
-    debugEl: null
+    debugEl: null,
+
+    zxingReader: null,
+    zxingHints: null,
+    zxingReady: false
   };
 
   function injectQrStyles() {
@@ -391,6 +394,43 @@
     document.head.appendChild(s);
   }
 
+  function initZxing() {
+    if (typeof window.ZXing === 'undefined') {
+      console.warn('[QR] ZXing not loaded — will fall back to jsQR only');
+      return;
+    }
+    try {
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'UTF-8');
+
+      const reader = new ZXing.MultiFormatReader();
+      reader.setHints(hints);
+
+      qr.zxingReader = reader;
+      qr.zxingHints = hints;
+      qr.zxingReady = true;
+      console.log('[QR] ZXing ready (TRY_HARDER enabled)');
+    } catch (err) {
+      console.warn('[QR] ZXing init failed:', err);
+      qr.zxingReady = false;
+    }
+  }
+
+  function decodeWithZxing(canvas) {
+    if (!qr.zxingReady || !qr.zxingReader) return null;
+    try {
+      const source = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+      const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(source));
+      const result = qr.zxingReader.decode(bitmap, qr.zxingHints);
+      if (result && result.getText()) {
+        return result.getText();
+      }
+    } catch (_) {}
+    return null;
+  }
+
   function initQrScanner() {
     qr.modal        = $('qrModal');
     qr.video        = $('qrVideo');
@@ -407,7 +447,6 @@
     qr.canvas = document.createElement('canvas');
     qr.ctx = qr.canvas.getContext('2d', { willReadFrequently: true });
 
-    // Debug overlay
     qr.debugEl = document.createElement('div');
     qr.debugEl.className = 'qr-debug-overlay';
     qr.debugEl.textContent = 'initializing…';
@@ -416,7 +455,6 @@
     $('scanQrBtn')?.addEventListener('click', openQrScanner);
     qr.closeBtn?.addEventListener('click', closeQrScanner);
     qr.retryBtn?.addEventListener('click', () => {
-      // Force full restart
       qr.starting = false;
       if (qr.stream) {
         qr.stream.getTracks().forEach(t => t.stop());
@@ -433,29 +471,7 @@
       if (e.key === 'Escape' && qr.active) closeQrScanner();
     });
 
-    probeDetector();
-  }
-
-  async function probeDetector() {
-    if (!('BarcodeDetector' in window)) {
-      console.log('[QR] Native BarcodeDetector not available — using jsQR only');
-      return;
-    }
-    try {
-      let supported = null;
-      if (typeof window.BarcodeDetector.getSupportedFormats === 'function') {
-        supported = await window.BarcodeDetector.getSupportedFormats();
-      }
-      if (supported && !supported.includes('qr_code')) {
-        console.log('[QR] Native BarcodeDetector does not support qr_code');
-        return;
-      }
-      qr.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-      console.log('[QR] Native BarcodeDetector ready');
-    } catch (err) {
-      console.warn('[QR] BarcodeDetector init failed:', err);
-      qr.detector = null;
-    }
+    initZxing();
   }
 
   function setDebug(text) {
@@ -481,7 +497,6 @@
 
     if (!window.isSecureContext) {
       showToast('Camera requires HTTPS');
-      console.warn('[QR] Not a secure context');
       return;
     }
 
@@ -490,11 +505,12 @@
       return;
     }
 
-    if (typeof window.jsQR !== 'function' && !qr.detector) {
-      await new Promise(r => setTimeout(r, 500));
-      if (typeof window.jsQR !== 'function' && !qr.detector) {
+    if (!qr.zxingReady && typeof window.jsQR !== 'function') {
+      await new Promise(r => setTimeout(r, 700));
+      initZxing();
+      if (!qr.zxingReady && typeof window.jsQR !== 'function') {
         showToast('QR library failed to load. Please refresh.');
-        console.error('[QR] No scanning backend');
+        console.error('[QR] No decoder available');
         return;
       }
     }
@@ -531,7 +547,6 @@
   }
 
   async function startCamera() {
-    // Strict guard against double-start
     if (qr.starting) {
       console.log('[QR] startCamera: already in progress, skipping');
       return;
@@ -635,7 +650,7 @@
 
   function startScanLoop() {
     stopScanLoop();
-    const INTERVAL = 120; // ms between scans (~8 fps)
+    const INTERVAL = 120;
 
     const tick = () => {
       if (!qr.active || qr.handling) return;
@@ -657,8 +672,7 @@
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    // KEY FIX: 700px max for jsQR — ~4x faster than 1280px, same accuracy.
-    const maxDim = 700;
+    const maxDim = 900;
     const scale = Math.min(1, maxDim / Math.max(vw, vh));
     const w = Math.max(1, Math.round(vw * scale));
     const h = Math.max(1, Math.round(vh * scale));
@@ -671,62 +685,55 @@
     try {
       qr.ctx.drawImage(video, 0, 0, w, h);
     } catch (err) {
-      if (qr.frameCount % 20 === 0) console.warn('[QR] drawImage failed:', err);
       qr.frameCount++;
       return;
     }
 
-    // Native detector (only if it exists)
-    if (qr.detector) {
-      qr.detector.detect(qr.canvas)
-        .then(codes => {
-          if (!qr.active || qr.handling) return;
-          if (codes && codes.length && codes[0].rawValue) {
-            onDetected(codes[0].rawValue, 'native');
-          }
-        })
-        .catch(() => {});
+    const t0 = performance.now();
+    const zxingResult = decodeWithZxing(qr.canvas);
+    const zxingMs = Math.round(performance.now() - t0);
+    qr.lastScanMs = zxingMs;
+
+    if (zxingResult) {
+      setDebug('ZXing HIT ✓');
+      onDetected(zxingResult, 'zxing');
+      return;
     }
 
-    // jsQR — the workhorse
+    let jsqrMs = 0;
     if (typeof window.jsQR === 'function') {
       let imageData;
       try {
         imageData = qr.ctx.getImageData(0, 0, w, h);
-      } catch (err) {
-        if (qr.frameCount % 20 === 0) console.warn('[QR] getImageData failed:', err);
+      } catch (_) {
         qr.frameCount++;
         return;
       }
-
-      const t0 = performance.now();
+      const t1 = performance.now();
       let code = null;
-      let threw = false;
       try {
         code = window.jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
-      } catch (err) {
-        threw = true;
-      }
-      const dtMs = Math.round(performance.now() - t0);
-      qr.lastScanMs = dtMs;
-
-      // Live debug overlay
-      if (qr.frameCount % 3 === 0) {
-        setDebug('frames: ' + qr.frameCount + '\njsQR: ' + dtMs + 'ms\nsize: ' + w + 'x' + h);
-      }
+      } catch (_) {}
+      jsqrMs = Math.round(performance.now() - t1);
 
       if (code && code.data) {
         onDetected(code.data, 'jsqr');
         return;
       }
+    }
 
-      if (qr.frameCount % 40 === 0) {
-        console.log('[QR] scan #' + qr.frameCount + ' · ' + w + 'x' + h + ' · jsQR ' + dtMs + 'ms · no code' + (threw ? ' (threw)' : ''));
-      }
-    } else {
-      if (qr.frameCount % 40 === 0) {
-        console.warn('[QR] jsQR not loaded!');
-      }
+    if (qr.frameCount % 3 === 0) {
+      setDebug(
+        'frames: ' + qr.frameCount +
+        '\nZXing: ' + zxingMs + 'ms' +
+        (jsqrMs ? '\njsQR: ' + jsqrMs + 'ms' : '') +
+        '\nsize: ' + w + 'x' + h
+      );
+    }
+
+    if (qr.frameCount % 30 === 0) {
+      console.log('[QR] scan #' + qr.frameCount + ' · ' + w + 'x' + h +
+        ' · ZXing ' + zxingMs + 'ms · jsQR ' + (jsqrMs || '-') + 'ms · no hit');
     }
 
     qr.frameCount++;
@@ -737,7 +744,6 @@
 
     const now = Date.now();
 
-    // Require the same content twice within 1.5s — kills random false positives
     if (rawData === qr.lastRaw && now - qr.lastRawTime < 1500) {
       qr.lastRawCount++;
     } else {
@@ -781,14 +787,11 @@
     const input = $('certInput');
     if (input) input.value = certId;
 
-    console.log('[QR] → will route to hash in 550ms:', certId);
-
     setTimeout(() => {
-      console.log('[QR] → closing modal and routing');
-      try { closeQrScanner(); } catch (e) { console.warn('[QR] closeQrScanner error:', e); }
+      try { closeQrScanner(); } catch (e) { console.warn('[QR] close error:', e); }
 
       const next = `#/${encodeURIComponent(certId)}`;
-      console.log('[QR] → hash: "' + window.location.hash + '" → "' + next + '"');
+      console.log('[QR] → routing to "' + next + '"');
       if (window.location.hash !== next) {
         window.location.hash = next;
       } else {
@@ -813,6 +816,16 @@
   // ===================================================================
   // extractCertId — MAXIMALLY PERMISSIVE
   // ===================================================================
+  //
+  // Handles:
+  //   https://cert.lingo-ville.com/#/encom-26abk-b1
+  //   cert.lingo-ville.com/#/encom-26abk-b1          ← no protocol
+  //   cert.lingo-ville.com/#encom-26abk-b1           ← no protocol, no slash
+  //   cert.lingo-ville.com/?id=encom-26abk-b1        ← no protocol
+  //   cert.lingo-ville.com/c/encom-26abk-b1
+  //   ENCOM-26ABK-B1
+  //   Certificate ID: ENCOM-26ABK-B1
+  //
   function extractCertId(content) {
     if (content == null) return '';
     let s = String(content).trim();
@@ -828,46 +841,62 @@
 
     if (!s) return '';
 
-    // URL form
-    if (/^https?:\/\//i.test(s)) {
-      let url;
-      try { url = new URL(s); } catch (_) { return s.toLowerCase(); }
+    // --- Normalize into a URL if it looks like one ---
+    let urlString = s;
+    const hasProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(urlString);
 
-      // Hash
-      if (url.hash) {
-        const rawHash = url.hash.replace(/^#!?\/?/, '').trim();
-        if (rawHash) {
-          const head = rawHash.split(/[?&#]/)[0];
-          const decoded = safeDecode(head).replace(/\/+$/, '').trim();
-          if (decoded) return decoded.toLowerCase();
-        }
-      }
+    if (!hasProtocol) {
+      // Signs it's a URL without a protocol:
+      //   host.tld followed by /, #, ?, :, or end
+      //   no whitespace
+      const looksLikeUrl =
+        /^[\w-]+(\.[\w-]+)+(\.[a-z]{2,})?(\/|#|\?|:|$)/i.test(urlString) &&
+        !/\s/.test(urlString);
 
-      // Preferred query params
-      const preferred = ['id', 'cert', 'certid', 'certificate', 'certificateid', 'code'];
-      for (const key of preferred) {
-        const v = url.searchParams.get(key);
-        if (v && v.trim()) return v.trim().toLowerCase();
+      if (looksLikeUrl) {
+        urlString = 'https://' + urlString;
       }
-      // Any query param
-      for (const [, v] of url.searchParams.entries()) {
-        if (v && v.trim()) return v.trim().toLowerCase();
-      }
-
-      // Last path segment
-      const skip = new Set(['verify', 'cert', 'certificate', 'certificates', 'index', 'index.html', 'home', '']);
-      const parts = url.pathname.split('/').filter(Boolean);
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const seg = parts[i].replace(/\.[a-z0-9]+$/i, '').trim();
-        if (!seg) continue;
-        if (skip.has(seg.toLowerCase())) continue;
-        return safeDecode(seg).toLowerCase();
-      }
-
-      return s.toLowerCase();
     }
 
-    // Plain text: longest line
+    // --- Try parsing as URL ---
+    if (/^https?:\/\//i.test(urlString)) {
+      let url = null;
+      try { url = new URL(urlString); } catch (_) {}
+
+      if (url) {
+        // 1) Hash fragment
+        if (url.hash) {
+          const rawHash = url.hash.replace(/^#!?\/?/, '').trim();
+          if (rawHash) {
+            const head = rawHash.split(/[?&#]/)[0];
+            const decoded = safeDecode(head).replace(/\/+$/, '').trim();
+            if (decoded) return decoded.toLowerCase();
+          }
+        }
+
+        // 2) Query params
+        const preferred = ['id', 'cert', 'certid', 'certificate', 'certificateid', 'code'];
+        for (const key of preferred) {
+          const v = url.searchParams.get(key);
+          if (v && v.trim()) return v.trim().toLowerCase();
+        }
+        for (const [, v] of url.searchParams.entries()) {
+          if (v && v.trim()) return v.trim().toLowerCase();
+        }
+
+        // 3) Last path segment
+        const skip = new Set(['verify', 'cert', 'certificate', 'certificates', 'index', 'index.html', 'home', '']);
+        const parts = url.pathname.split('/').filter(Boolean);
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const seg = parts[i].replace(/\.[a-z0-9]+$/i, '').trim();
+          if (!seg) continue;
+          if (skip.has(seg.toLowerCase())) continue;
+          return safeDecode(seg).toLowerCase();
+        }
+      }
+    }
+
+    // --- Plain text — longest line ---
     const lines = s.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
     if (lines.length) {
       return lines.sort((a, b) => b.length - a.length)[0].toLowerCase();
@@ -880,7 +909,6 @@
     try { return decodeURIComponent(v); } catch (_) { return v; }
   }
 
-  // ---------- Events ----------
   $('searchForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const val = $('certInput').value.trim().toLowerCase();
