@@ -1,0 +1,213 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Lingo Ville certificate sample">
+  <defs>
+    <!-- Subtle background pattern: pale overlapping squares -->
+    <pattern id="paperSquares" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+      <rect width="80" height="80" fill="#ffffff"/>
+      <rect x="6"  y="6"  width="34" height="34" fill="#f4f6f8" opacity="0.55"/>
+      <rect x="40" y="22" width="28" height="28" fill="#eef2f4" opacity="0.45"/>
+      <rect x="18" y="48" width="26" height="26" fill="#f0f3f5" opacity="0.5"/>
+      <rect x="52" y="54" width="20" height="20" fill="#f6f8f9" opacity="0.6"/>
+    </pattern>
+
+    <!-- Soft inner shadow-ish frame -->
+    <radialGradient id="paperVignette" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#e7ecef" stop-opacity="0.35"/>
+    </radialGradient>
+
+    <!-- Diagonal gradient for the corner diamond clusters -->
+    <linearGradient id="tealFade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#0F9589"/>
+      <stop offset="100%" stop-color="#0a776e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ============ BACKGROUND ============ -->
+  <rect x="0" y="0" width="800" height="1000" fill="url(#paperSquares)"/>
+  <rect x="0" y="0" width="800" height="1000" fill="url(#paperVignette)"/>
+
+  <!-- ============ CORNER DIAMOND CLUSTERS ============ -->
+  <!-- top-right -->
+  <g>
+    <rect x="700" y="-10" width="70"  height="70"  fill="#0F9589" transform="rotate(45 735 25)"/>
+    <rect x="660" y="20"  width="44"  height="44"  fill="#FF6B2C" transform="rotate(45 682 42)"/>
+    <rect x="740" y="40"  width="40"  height="40"  fill="#FF6B2C" transform="rotate(45 760 60)"/>
+    <rect x="708" y="72"  width="34"  height="34"  fill="#0F9589" transform="rotate(45 725 89)"/>
+    <rect x="752" y="90"  width="22"  height="22"  fill="#FF6B2C" transform="rotate(45 763 101)"/>
+  </g>
+  <!-- bottom-left -->
+  <g>
+    <rect x="-30" y="930" width="78" height="78" fill="#0F9589" transform="rotate(45 9 969)"/>
+    <rect x="10"  y="900" width="46" height="46" fill="#FF6B2C" transform="rotate(45 33 923)"/>
+    <rect x="46"  y="948" width="40" height="40" fill="#FF6B2C" transform="rotate(45 66 968)"/>
+    <rect x="24"  y="982" width="34" height="34" fill="#0F9589" transform="rotate(45 41 999)"/>
+    <rect x="76"  y="996" width="22" height="22" fill="#FF6B2C" transform="rotate(45 87 1007)"/>
+  </g>
+
+  <!-- ============ LOGO (top-left) ============ -->
+  <g transform="translate(80, 60)">
+    <!-- circular ring -->
+    <circle cx="55" cy="55" r="46" fill="none" stroke="#0F9589" stroke-width="5"/>
+    <!-- stylized L: orange diagonal + teal diagonal -->
+    <path d="M38 20 L58 92 L84 62" fill="none" stroke="#FF6B2C" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M38 20 L24 96 L54 84" fill="none" stroke="#0F9589" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter"/>
+    <!-- wordmark -->
+    <text x="55" y="128" text-anchor="middle"
+          font-family="'Space Grotesk','DM Sans',system-ui,sans-serif"
+          font-weight="700" font-size="20" fill="#0F9589" letter-spacing="0.5">
+      LingoVille
+    </text>
+  </g>
+
+  <!-- ============ CENTER: HEADERS ============ -->
+  <text x="400" y="180" text-anchor="middle"
+        font-family="'Space Grotesk','DM Sans',system-ui,sans-serif"
+        font-weight="700" font-size="66" fill="#0F9589" letter-spacing="6">
+    CERTIFICATE
+  </text>
+  <text x="400" y="222" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-weight="700" font-size="22" fill="#111111" letter-spacing="3">
+    OF COMPLETION
+  </text>
+
+  <text x="400" y="278" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-size="16" fill="#4c4944">
+    This certificate is proudly presented to
+  </text>
+
+  <!-- ============ RECIPIENT NAME (script, orange) ============ -->
+  <text x="400" y="358" text-anchor="middle"
+        font-family="'Brush Script MT','Lucida Handwriting','Segoe Script',cursive"
+        font-weight="400" font-size="62" fill="#FF6B2C" font-style="italic">
+    Sample Name
+  </text>
+  <line x1="240" y1="378" x2="560" y2="378" stroke="#FF6B2C" stroke-width="1.5"/>
+
+  <!-- ============ BODY LINES ============ -->
+  <text x="400" y="424" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-size="16" fill="#4c4944">
+    who has successfully completed the
+  </text>
+
+  <text x="400" y="458" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-weight="700" font-size="20" fill="#111111">
+    English For Communication course Level B1/B1+
+  </text>
+
+  <text x="400" y="492" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-size="16" fill="#4c4944">
+    (October 2025 – June 2026)
+  </text>
+
+  <text x="400" y="536" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-size="14" fill="#4c4944">
+    Awarded on June 12, 2026 | Sfax, Lingoville Language Centre
+  </text>
+
+  <!-- ============ SIGNATURE BLOCK ============ -->
+  <g transform="translate(400, 640)">
+    <!-- stylized signature stroke -->
+    <path d="M-120 30
+             C -100 0, -80 -20, -60 0
+             C -40 20, -30 -10, -10 -15
+             C 15 -22, 20 25, 45 15
+             C 65 8, 70 -8, 90 -5
+             C 100 -3, 108 12, 118 20"
+          fill="none" stroke="#0F9589" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="122" cy="22" r="2.6" fill="#0F9589"/>
+    <!-- small orange rule under signature -->
+    <line x1="-40" y1="52" x2="40" y2="52" stroke="#FF6B2C" stroke-width="1.5"/>
+  </g>
+
+  <text x="400" y="730" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-weight="700" font-size="17" fill="#111111">
+    Mr. Bessem Mbarek
+  </text>
+  <text x="400" y="754" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-size="13" fill="#4c4944">
+    English language Teacher &amp; Managing
+  </text>
+  <text x="400" y="772" text-anchor="middle"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-size="13" fill="#4c4944">
+    Director of LingoVille
+  </text>
+
+  <!-- ============ QR CODE (bottom-right) ============ -->
+  <g transform="translate(660, 810)">
+    <rect x="0" y="0" width="100" height="100" fill="#ffffff" stroke="#FF6B2C" stroke-width="1"/>
+    <!-- three finder patterns -->
+    <g fill="#FF6B2C">
+      <!-- top-left finder -->
+      <rect x="6"  y="6"  width="24" height="24"/>
+      <rect x="10" y="10" width="16" height="16" fill="#ffffff"/>
+      <rect x="14" y="14" width="8"  height="8"  fill="#FF6B2C"/>
+      <!-- top-right finder -->
+      <rect x="70" y="6"  width="24" height="24"/>
+      <rect x="74" y="10" width="16" height="16" fill="#ffffff"/>
+      <rect x="78" y="14" width="8"  height="8"  fill="#FF6B2C"/>
+      <!-- bottom-left finder -->
+      <rect x="6"  y="70" width="24" height="24"/>
+      <rect x="10" y="74" width="16" height="16" fill="#ffffff"/>
+      <rect x="14" y="78" width="8"  height="8"  fill="#FF6B2C"/>
+      <!-- data cells -->
+      <rect x="38" y="6"  width="6" height="6"/>
+      <rect x="48" y="6"  width="6" height="6"/>
+      <rect x="58" y="6"  width="6" height="6"/>
+      <rect x="38" y="18" width="6" height="6"/>
+      <rect x="52" y="18" width="6" height="6"/>
+      <rect x="62" y="18" width="6" height="6"/>
+      <rect x="34" y="30" width="6" height="6"/>
+      <rect x="42" y="30" width="6" height="6"/>
+      <rect x="54" y="30" width="6" height="6"/>
+      <rect x="66" y="30" width="6" height="6"/>
+      <rect x="76" y="30" width="6" height="6"/>
+      <rect x="86" y="30" width="6" height="6"/>
+      <rect x="6"  y="34" width="6" height="6"/>
+      <rect x="18" y="34" width="6" height="6"/>
+      <rect x="30" y="42" width="6" height="6"/>
+      <rect x="42" y="42" width="6" height="6"/>
+      <rect x="54" y="42" width="6" height="6"/>
+      <rect x="66" y="42" width="6" height="6"/>
+      <rect x="78" y="42" width="6" height="6"/>
+      <rect x="6"  y="46" width="6" height="6"/>
+      <rect x="14" y="50" width="6" height="6"/>
+      <rect x="26" y="54" width="6" height="6"/>
+      <rect x="38" y="54" width="6" height="6"/>
+      <rect x="50" y="54" width="6" height="6"/>
+      <rect x="62" y="54" width="6" height="6"/>
+      <rect x="74" y="54" width="6" height="6"/>
+      <rect x="86" y="54" width="6" height="6"/>
+      <rect x="42" y="66" width="6" height="6"/>
+      <rect x="54" y="66" width="6" height="6"/>
+      <rect x="66" y="66" width="6" height="6"/>
+      <rect x="78" y="66" width="6" height="6"/>
+      <rect x="34" y="78" width="6" height="6"/>
+      <rect x="46" y="78" width="6" height="6"/>
+      <rect x="58" y="78" width="6" height="6"/>
+      <rect x="70" y="78" width="6" height="6"/>
+      <rect x="82" y="78" width="6" height="6"/>
+      <rect x="38" y="90" width="6" height="6"/>
+      <rect x="50" y="90" width="6" height="6"/>
+      <rect x="62" y="90" width="6" height="6"/>
+      <rect x="74" y="90" width="6" height="6"/>
+      <rect x="86" y="90" width="6" height="6"/>
+    </g>
+  </g>
+
+  <!-- ============ CERTIFICATE ID ============ -->
+  <text x="768" y="945" text-anchor="end"
+        font-family="'DM Sans',system-ui,sans-serif"
+        font-size="13" fill="#111111">
+    Certificate ID:
+    <tspan font-family="'DM Mono',ui-monospace,monospace" font-weight="600">encom-26abk-b1</tspan>
+  </text>
+</svg>

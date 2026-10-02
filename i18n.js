@@ -1,6 +1,11 @@
 /* Lingo‑Ville — Certificate app i18n
  * Simple EN/FR dictionary with data-i18n attribute scanning + localStorage persistence.
  * Exposes window.i18n = { t, apply, setLang, toggle, get lang }
+ *
+ * t(key) returns:
+ *   - the string at that path (with {var} interpolation if vars passed)
+ *   - the raw value (array / object) if the path resolves to one
+ *   - the key itself as a last-resort fallback
  */
 (function () {
   'use strict';
@@ -44,6 +49,28 @@
         scanBtn: 'Scan QR Code',
         scanHint: 'Uses your device camera · No image is stored',
       },
+
+      samples: {
+        eyebrow: '02 / What you are verifying',
+        title: 'Real certificates, made to be checked.',
+        intro: 'Every Lingo Ville certificate carries a unique ID, an issue date, and a QR code. Tap a preview to try one.',
+        cards: [
+          { tag: 'CEFR · A1' },
+          { tag: 'CEFR · B2' },
+          { tag: 'CEFR · C1' },
+        ],
+      },
+
+      steps: {
+        eyebrow: '03 / How it works',
+        title: 'Three steps from paper to proof.',
+        items: [
+          { title: 'Find the ID', body: 'Look on the bottom of the certificate — every one carries a unique code.' },
+          { title: 'Enter or scan', body: 'Type the ID above, or scan the QR code printed on the document.' },
+          { title: 'See the record', body: 'We show the verified details and the original signed PDF.' },
+        ],
+      },
+
       loading: {
         title: 'Looking up certificate…',
         sub: 'Fetching record · Rendering PDF',
@@ -197,6 +224,28 @@
         scanBtn: 'Scanner le QR code',
         scanHint: 'Utilise la caméra de votre appareil · Aucune image conservée',
       },
+
+      samples: {
+        eyebrow: '02 / Ce que vous vérifiez',
+        title: 'De vrais certificats, faits pour être vérifiés.',
+        intro: 'Chaque certificat Lingo Ville porte un identifiant unique, une date de délivrance et un QR code. Touchez un aperçu pour l’essayer.',
+        cards: [
+          { tag: 'CECRL · A1' },
+          { tag: 'CECRL · B2' },
+          { tag: 'CECRL · C1' },
+        ],
+      },
+
+      steps: {
+        eyebrow: '03 / Comment ça marche',
+        title: 'Trois étapes, du papier à la preuve.',
+        items: [
+          { title: 'Trouvez l’identifiant', body: 'Regardez en bas du certificat — chacun porte un code unique.' },
+          { title: 'Saisissez ou scannez', body: 'Tapez l’identifiant ci-dessus, ou scannez le QR code imprimé sur le document.' },
+          { title: 'Consultez le dossier', body: 'Nous affichons les détails vérifiés et le PDF signé original.' },
+        ],
+      },
+
       loading: {
         title: 'Recherche du certificat…',
         sub: 'Récupération · Rendu du PDF',
@@ -332,47 +381,57 @@
 
   var current = detectInitial();
 
+  // Traverse the dict by dot-path and return whatever lives there —
+  // string, array, object, or undefined. Falls back to EN on miss.
   function resolve(path) {
-    var parts = path.split('.');
-    var cur = dict[current];
-    for (var i = 0; i < parts.length; i++) {
-      if (cur && typeof cur === 'object' && parts[i] in cur) {
-        cur = cur[parts[i]];
-      } else {
-        // fallback to EN
-        cur = dict.en;
-        for (var j = 0; j < parts.length; j++) {
-          if (cur && typeof cur === 'object' && parts[j] in cur) cur = cur[parts[j]];
-          else return undefined;
+    if (!path) return undefined;
+
+    function walk(root) {
+      var parts = path.split('.');
+      var cur = root;
+      for (var i = 0; i < parts.length; i++) {
+        if (cur && typeof cur === 'object' && parts[i] in cur) {
+          cur = cur[parts[i]];
+        } else {
+          return undefined;
         }
-        return typeof cur === 'string' ? cur : undefined;
       }
+      return cur;
     }
-    return typeof cur === 'string' ? cur : undefined;
+
+    var fromCurrent = walk(dict[current]);
+    if (fromCurrent !== undefined) return fromCurrent;
+
+    var fromEn = walk(dict.en);
+    return fromEn;
   }
 
   function t(key, vars) {
-    var s = resolve(key);
-    if (s == null) s = key;
+    var v = resolve(key);
+    if (v == null) return key;
+    // Arrays / objects pass through untouched so callers can destructure them.
+    if (typeof v !== 'string') return v;
+
     if (vars && typeof vars === 'object') {
       Object.keys(vars).forEach(function (k) {
-        s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), String(vars[k]));
+        v = v.replace(new RegExp('\\{' + k + '\\}', 'g'), String(vars[k]));
       });
     }
-    return s;
+    return v;
   }
 
   // ---------- Apply to DOM ----------
   function apply(root) {
     var scope = root || document;
 
-    // Text content via data-i18n
+    // Text content via data-i18n (only strings assigned here)
     var els = scope.querySelectorAll('[data-i18n]');
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       var key = el.getAttribute('data-i18n');
       if (!key) continue;
-      el.textContent = t(key);
+      var val = t(key);
+      if (typeof val === 'string') el.textContent = val;
     }
 
     // HTML content via data-i18n-html
@@ -381,7 +440,8 @@
       var hel = htmlEls[h];
       var hkey = hel.getAttribute('data-i18n-html');
       if (!hkey) continue;
-      hel.innerHTML = t(hkey);
+      var hval = t(hkey);
+      if (typeof hval === 'string') hel.innerHTML = hval;
     }
 
     // Attribute translation via data-i18n-attr="placeholder:key,aria-label:key2"
@@ -394,14 +454,17 @@
         if (idx === -1) return;
         var attr = pair.slice(0, idx).trim();
         var key = pair.slice(idx + 1).trim();
-        if (attr && key) ael.setAttribute(attr, t(key));
+        if (!attr || !key) return;
+        var v = t(key);
+        if (typeof v === 'string') ael.setAttribute(attr, v);
       });
     }
 
     // Title
     var titleEl = document.querySelector('title[data-i18n]');
     if (titleEl) {
-      document.title = t(titleEl.getAttribute('data-i18n'));
+      var tv = t(titleEl.getAttribute('data-i18n'));
+      if (typeof tv === 'string') document.title = tv;
     }
 
     // Language toggle label — updates every element with data-lang-toggle
@@ -430,6 +493,7 @@
   // ---------- Expose ----------
   window.i18n = {
     t: t,
+    resolve: resolve,       // useful when a caller wants the raw value (arrays etc.)
     apply: apply,
     setLang: setLang,
     toggle: toggle,
