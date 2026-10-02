@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title data-i18n="support.titleMeta">Lingo‑Ville | Support</title>
+  <meta name="description" content="Contact Lingo‑Ville by email, phone, WhatsApp, Instagram, LinkedIn, or visit us in Sfax. We are here to help." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#0F9589" />
+  <link rel="canonical" href="https://cert.lingo-ville.com/support.html" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          teal: { 50:'#e6f5f4',100:'#c8ebe8',200:'#96d9d2',300:'#63c6ba',400:'#38b3a5',500:'#0F9589',600:'#0a776e',700:'#075049',800:'#043e39',900:'#022c28',DEFAULT:'#0F9589' },
+          orange: { 50:'#fff3ec',100:'#ffe0d0',200:'#ffc5a4',300:'#ffa575',400:'#ff8749',500:'#FF6B2C',600:'#e05517',700:'#b8430f',DEFAULT:'#FF6B2C' },
+          ink: '#111111', paper: '#f5eee1'
+        },
+        fontFamily: {
+          display: ['Space Grotesk','system-ui','sans-serif'],
+          sans: ['DM Sans','system-ui','sans-serif'],
+          mono: ['DM Mono','ui-monospace','monospace']
+        }
+      }}
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{--ink:#111111;--paper:#f5eee1;--teal:#0F9589;--teal-dark:#0a6e65;--orange:#FF6B2C;--yellow:#ffc928;--green:#11aa62;--purple:#b78af1;--card:#fffaf2;--line:rgba(17,17,17,.24);--muted:#6e6a62;--font-display:'Space Grotesk',system-ui,sans-serif;--font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'DM Mono',ui-monospace,monospace}
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;min-height:100dvh;background:var(--paper);color:var(--ink);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+    .hidden{display:none !important}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .lv-shell{min-height:100dvh;padding-left:136px;display:flex;flex-direction:column}
+    .lv-sidebar{position:fixed;inset:0 auto 0 0;width:136px;z-index:50;background:var(--paper);border-right:1px solid var(--ink);padding:14px 10px 12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden}
+    .lv-brand{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:inherit}
+    .lv-brand-mark{width:56px;height:56px;display:block;object-fit:contain}
+    .lv-brand-sub{font-family:var(--font-mono);font-size:.55rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center;line-height:1.2}
+    .lv-rail{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .lv-rail-link{flex:1 1 0;min-height:72px;display:flex;flex-direction:column;justify-content:space-between;padding:12px 10px;border:1px solid var(--ink);border-radius:14px;text-decoration:none;color:var(--ink);font-family:var(--font-display);font-weight:700;font-size:.82rem;letter-spacing:-.01em;line-height:1.15;transition:transform .25s ease,box-shadow .25s ease}
+    .lv-rail-link:hover{transform:translateX(4px);box-shadow:4px 4px 0 var(--ink)}
+    .lv-rail-link .lv-rail-top{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.04em}
+    .lv-rail-link .lv-rail-arrow{font-family:var(--font-mono);font-size:.72rem;line-height:1}
+    .lv-rail-link.lv-teal{background:var(--teal);color:var(--paper)}
+    .lv-rail-link.lv-yellow{background:var(--yellow)}
+    .lv-rail-link.lv-orange{background:var(--orange)}
+    .lv-rail-link.lv-green{background:var(--green)}
+    .lv-utility{display:block;padding:11px 8px;text-align:center;border:1px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--paper);text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:-.01em;transition:transform .2s,box-shadow .2s;cursor:pointer}
+    .lv-utility:hover{transform:translateY(-2px);box-shadow:3px 3px 0 var(--ink)}
+    .lv-toggle{display:block;width:100%;padding:10px 6px;border:1px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--paper);font:inherit;font-family:var(--font-sans);font-size:.68rem;font-weight:700;letter-spacing:.02em;text-align:center;cursor:pointer;transition:background .2s,transform .2s,box-shadow .2s}
+    .lv-toggle:hover{background:var(--teal);transform:translateY(-2px);box-shadow:3px 3px 0 var(--ink)}
+    .lv-socials{display:block;width:100%;padding:10px 6px;border:1px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--paper);text-align:center;text-decoration:none;font-size:.68rem;font-weight:700;letter-spacing:5px;transition:background .2s,transform .2s,box-shadow .2s}
+    .lv-socials:hover{background:var(--teal);transform:translateY(-2px);box-shadow:3px 3px 0 var(--ink)}
+    .lv-mobile-bar{display:none}
+    .lv-main{flex:1 1 auto;display:flex;flex-direction:column;min-height:100dvh}
+    .lv-container{width:min(1280px,calc(100% - 48px));margin:0 auto}
+    .lv-hero{padding:56px 0 36px;border-bottom:1px solid var(--ink)}
+    .lv-eyebrow{font-family:var(--font-mono);font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;color:var(--orange);display:flex;align-items:center;gap:10px;margin-bottom:18px}
+    .lv-eyebrow-line{display:inline-block;width:38px;border-top:2px solid currentColor}
+    .lv-h1{margin:0;max-width:940px;font-family:var(--font-display);font-weight:700;font-size:clamp(2.8rem,6.2vw,6rem);line-height:.86;letter-spacing:-.06em}
+    .lv-h1 em{color:var(--orange);font-style:normal}
+    .lv-hero-copy{max-width:560px;margin:22px 0 0;color:#4c4944;font-size:1.02rem;line-height:1.55}
+    .lv-section{padding:56px 0}
+    .lv-section-eyebrow{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin-bottom:12px}
+    .lv-channels{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .lv-channel{border:1px solid var(--ink);border-radius:22px;padding:24px;background:var(--card);display:flex;flex-direction:column;gap:14px;text-decoration:none;color:inherit;transition:transform .25s,box-shadow .25s}
+    .lv-channel:hover{transform:translateY(-4px);box-shadow:6px 7px 0 var(--ink)}
+    .lv-channel-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;border:1px solid var(--ink);flex:0 0 auto}
+    .lv-channel-icon svg{width:22px;height:22px}
+    .lv-channel h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:1.35rem;letter-spacing:-.04em;line-height:1}
+    .lv-channel p{margin:0;color:#4c4944;font-size:.9rem;line-height:1.5}
+    .lv-channel .lv-channel-value{margin-top:auto;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.02em;color:var(--ink);word-break:break-all}
+
+    .lv-hours{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--ink);border-radius:22px;overflow:hidden;background:var(--card);margin-top:26px}
+    .lv-hour{padding:22px 24px;border-right:1px solid var(--ink)}
+    .lv-hour:last-child{border-right:0}
+    .lv-hour .day{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+    .lv-hour .time{font-family:var(--font-display);font-weight:700;font-size:1.15rem;letter-spacing:-.02em}
+
+    .lv-verify-cta{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center;background:var(--teal);color:var(--paper);border:1px solid var(--ink);border-radius:24px;padding:34px 38px;margin-top:56px}
+    .lv-verify-cta h2{margin:0;font-family:var(--font-display);font-weight:700;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.05em;line-height:.95}
+    .lv-verify-cta p{margin:12px 0 0;font-size:.95rem;line-height:1.6;opacity:.92}
+    .lv-verify-cta .lv-btn{background:var(--paper);color:var(--ink);border-color:var(--ink);margin-top:20px}
+    .lv-verify-cta .lv-btn:hover{box-shadow:4px 4px 0 var(--ink)}
+
+    .lv-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;border:1px solid var(--ink);border-radius:999px;cursor:pointer;text-decoration:none;font-family:var(--font-sans);font-size:.8rem;font-weight:700;color:var(--ink);background:transparent;transition:transform .25s,box-shadow .25s,background .25s;white-space:nowrap}
+    .lv-btn:hover{transform:translateY(-3px);box-shadow:4px 4px 0 var(--ink)}
+    .lv-btn-teal{background:var(--teal);color:var(--paper)}
+
+    .lv-footer{background:var(--ink);color:var(--paper);padding:56px 0 22px;margin-top:auto}
+    .lv-footer-grid{display:grid;grid-template-columns:1.2fr .8fr .8fr;gap:45px}
+    .lv-footer h4{font-family:var(--font-sans);font-size:.68rem;color:var(--orange);text-transform:uppercase;letter-spacing:.1em;margin:0 0 17px;font-weight:700}
+    .lv-footer p{color:#cbc5b9;line-height:1.5;max-width:320px;margin:0;font-size:.9rem}
+    .lv-footer a{display:block;text-decoration:none;margin:9px 0;font-size:.82rem;color:inherit;transition:color .2s}
+    .lv-footer a:hover{color:var(--yellow)}
+    .lv-footer .lv-footer-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;margin-bottom:18px}
+    .lv-footer .lv-footer-brand img{width:44px;height:44px;object-fit:contain}
+    .lv-footer .lv-footer-brand span{font-family:var(--font-display);font-weight:700;font-size:1.05rem;letter-spacing:-.04em;color:var(--paper)}
+    .lv-footer-bottom{border-top:1px solid #4a4843;margin-top:40px;padding-top:18px;color:#aaa398;font-size:.68rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+    @media (max-width:1024px){
+      .lv-channels{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width:900px){
+      .lv-shell{padding-left:0}
+      .lv-sidebar{display:none}
+
+      /* ---------- Mobile top bar ---------- */
+      .lv-mobile-bar{
+        display:flex;align-items:center;justify-content:space-between;
+        padding:0 18px;height:68px;border-bottom:1px solid var(--ink);
+        background:var(--paper);position:sticky;top:0;z-index:60
+      }
+      .lv-mobile-brand{
+        display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit
+      }
+      .lv-mobile-brand img{width:38px;height:38px;object-fit:contain}
+      .lv-mobile-brand span{
+        font-family:var(--font-display);font-weight:700;font-size:.85rem;
+        letter-spacing:-.05em;line-height:1
+      }
+
+      .lv-mobile-actions{display:flex;align-items:center;gap:8px}
+
+      .lv-mobile-lang{
+        display:inline-flex;align-items:center;justify-content:center;
+        height:34px;padding:0 14px;
+        border:1px solid var(--ink);border-radius:999px;
+        background:var(--ink);color:var(--paper);
+        font:inherit;font-family:var(--font-sans);
+        font-size:.7rem;font-weight:700;letter-spacing:.02em;
+        cursor:pointer;appearance:none;-webkit-appearance:none;
+        transition:background .2s,transform .2s
+      }
+      .lv-mobile-lang:hover{background:var(--teal)}
+
+      .lv-mobile-menu-btn{
+        display:grid;place-items:center;
+        width:36px;height:36px;padding:0;
+        border:1px solid var(--ink);border-radius:50%;
+        background:transparent;color:var(--ink);
+        font:inherit;cursor:pointer;
+        transition:background .2s,color .2s
+      }
+      .lv-mobile-menu-btn:hover{background:var(--ink);color:var(--paper)}
+      .lv-mobile-menu-btn svg{width:18px;height:18px}
+      .lv-mobile-menu-btn .lv-icon-close{display:none}
+      .lv-mobile-menu-btn.is-open .lv-icon-menu{display:none}
+      .lv-mobile-menu-btn.is-open .lv-icon-close{display:block}
+
+      .lv-mobile-menu{
+        position:fixed;top:68px;left:0;right:0;
+        background:var(--paper);
+        border-bottom:1px solid var(--ink);
+        padding:15px 18px;
+        display:grid;gap:6px;
+        box-shadow:0 10px 24px rgba(17,17,17,.13);
+        z-index:59
+      }
+      .lv-mobile-menu a{
+        display:block;padding:11px 5px;
+        text-decoration:none;color:var(--ink);
+        font-family:var(--font-sans);font-weight:700;font-size:.95rem
+      }
+      .lv-mobile-menu-divider{
+        border-top:1px solid var(--ink);margin:6px 0
+      }
+
+      .lv-container{width:min(100% - 32px,720px)}
+      .lv-hero{padding:42px 0 30px}
+      .lv-section{padding:42px 0}
+      .lv-channels{grid-template-columns:1fr 1fr}
+      .lv-hours{grid-template-columns:1fr}
+      .lv-hour{border-right:0;border-bottom:1px solid var(--ink)}
+      .lv-hour:last-child{border-bottom:0}
+      .lv-verify-cta{grid-template-columns:1fr;padding:28px 24px}
+      .lv-footer-grid{grid-template-columns:1fr 1fr;gap:32px}
+    }
+    @media (max-width:560px){
+      .lv-container{width:calc(100% - 28px)}
+      .lv-hero{padding:32px 0 26px}
+      .lv-h1{font-size:clamp(2.4rem,11vw,3.6rem)}
+      .lv-hero-copy{font-size:.95rem}
+      .lv-channels{grid-template-columns:1fr}
+      .lv-footer-grid{grid-template-columns:1fr;gap:26px}
+      .lv-footer-bottom{display:block}
+      .lv-footer-bottom span{display:block}
+      .lv-footer-bottom span+span{margin-top:6px}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="lv-shell">
+
+    <aside class="lv-sidebar" aria-label="Main navigation">
+      <a href="/" class="lv-brand" aria-label="Lingo‑Ville">
+        <img src="/logo.png" alt="" class="lv-brand-mark" />
+        <span class="lv-brand-sub" data-i18n-html="brand.sub"></span>
+      </a>
+      <nav class="lv-rail" aria-label="Primary">
+        <a href="/" class="lv-rail-link lv-teal">
+          <span class="lv-rail-top"><span>01</span><span class="lv-rail-arrow">↗</span></span>
+          <span data-i18n="nav.verify"></span>
+        </a>
+        <a href="/support.html" class="lv-rail-link lv-yellow" aria-current="page">
+          <span class="lv-rail-top"><span>02</span><span class="lv-rail-arrow">↗</span></span>
+          <span data-i18n="nav.support"></span>
+        </a>
+        <a href="https://lingo-ville.com/" target="_blank" rel="noopener" class="lv-rail-link lv-green">
+          <span class="lv-rail-top"><span>03</span><span class="lv-rail-arrow">↗</span></span>
+          <span data-i18n="nav.mainSite"></span>
+        </a>
+      </nav>
+      <a href="https://lingo-ville.com/login" target="_blank" rel="noopener" class="lv-utility">
+        <span data-i18n="nav.login"></span> ↗
+      </a>
+      <button type="button" class="lv-toggle" data-lang-toggle data-i18n-attr="aria-label:nav.toggleAria">
+        English · FR
+      </button>
+      <a href="https://card.tccards.tn/@lingo-ville" target="_blank" rel="noopener" class="lv-socials"
+         data-i18n-attr="aria-label:nav.socialsAria">◎ f in</a>
+    </aside>
+
+    <header class="lv-mobile-bar">
+      <a href="/" class="lv-mobile-brand">
+        <img src="/logo.png" alt="" />
+        <span>LINGO<br />VILLE</span>
+      </a>
+
+      <div class="lv-mobile-actions">
+        <button type="button" class="lv-mobile-lang" data-lang-toggle
+                data-i18n-attr="aria-label:nav.toggleAria">English · FR</button>
+        <button type="button" class="lv-mobile-menu-btn" id="mobileMenuBtn"
+                data-i18n-attr="aria-label:nav.menuAria" aria-expanded="false" aria-controls="mobileMenu">
+          <svg class="lv-icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+          </svg>
+          <svg class="lv-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="lv-mobile-menu hidden" id="mobileMenu" aria-label="Mobile navigation">
+        <a href="https://lingo-ville.com/" target="_blank" rel="noopener noreferrer" data-i18n="nav.home"></a>
+        <a href="/" data-i18n="nav.verify"></a>
+        <a href="/support.html" data-i18n="nav.support"></a>
+        <div class="lv-mobile-menu-divider"></div>
+        <a href="https://lingo-ville.com/login" target="_blank" rel="noopener">
+          <span data-i18n="nav.login"></span> ↗
+        </a>
+      </nav>
+    </header>
+
+    <main class="lv-main">
+
+      <section class="lv-hero">
+        <div class="lv-container">
+          <div class="lv-eyebrow">
+            <span class="lv-eyebrow-line"></span>
+            <span data-i18n="support.eyebrow"></span>
+          </div>
+          <h1 class="lv-h1">
+            <span data-i18n="support.titleA"></span><em data-i18n="support.titleEm"></em><span data-i18n="support.titleB"></span>
+          </h1>
+          <p class="lv-hero-copy" data-i18n="support.copy"></p>
+        </div>
+      </section>
+
+      <section class="lv-section">
+        <div class="lv-container">
+          <div class="lv-section-eyebrow">01 / <span data-i18n="support.channelsTitle"></span></div>
+
+          <div class="lv-channels">
+
+            <a class="lv-channel" href="mailto:contact@lingo-ville.com">
+              <span class="lv-channel-icon" style="background: var(--teal); color: var(--paper);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <h3 data-i18n="support.emailTitle"></h3>
+              <p data-i18n="support.emailCopy"></p>
+              <span class="lv-channel-value">contact@lingo-ville.com</span>
+            </a>
+
+            <a class="lv-channel" href="tel:+21622571291">
+              <span class="lv-channel-icon" style="background: var(--orange); color: var(--ink);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+              </span>
+              <h3 data-i18n="support.phoneTitle"></h3>
+              <p data-i18n="support.phoneCopy"></p>
+              <span class="lv-channel-value">+216 22 571 291</span>
+            </a>
+
+            <a class="lv-channel" href="https://wa.me/21622571291" target="_blank" rel="noopener">
+              <span class="lv-channel-icon" style="background: var(--green); color: var(--paper);">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.52 3.48A11.9 11.9 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.12.55 4.11 1.52 5.84L0 24l6.35-1.66A11.96 11.96 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.2-3.48-8.52zM12 21.9c-1.85 0-3.65-.5-5.23-1.44l-.37-.22-3.77.99 1-3.67-.24-.38A9.9 9.9 0 0 1 2.1 12C2.1 6.54 6.54 2.1 12 2.1S21.9 6.54 21.9 12 17.46 21.9 12 21.9zm5.44-7.4c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35z"/>
+                </svg>
+              </span>
+              <h3 data-i18n="support.whatsappTitle"></h3>
+              <p data-i18n="support.whatsappCopy"></p>
+              <span class="lv-channel-value">+216 22 571 291</span>
+            </a>
+
+            <a class="lv-channel" href="https://maps.app.goo.gl/tVP989iZABiDcwYV7" target="_blank" rel="noopener">
+              <span class="lv-channel-icon" style="background: var(--yellow); color: var(--ink);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </span>
+              <h3 data-i18n="support.addressTitle"></h3>
+              <p data-i18n="support.addressCopy"></p>
+              <span class="lv-channel-value">Sfax, Tunisia</span>
+            </a>
+
+            <a class="lv-channel" href="https://www.instagram.com/lingo.ville" target="_blank" rel="noopener">
+              <span class="lv-channel-icon" style="background: var(--purple); color: var(--ink);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+              </span>
+              <h3 data-i18n="support.instagramTitle"></h3>
+              <p data-i18n="support.instagramCopy"></p>
+              <span class="lv-channel-value">@lingo.ville</span>
+            </a>
+
+            <a class="lv-channel" href="https://www.linkedin.com/company/lingo-ville" target="_blank" rel="noopener">
+              <span class="lv-channel-icon" style="background: var(--ink); color: var(--paper);">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/>
+                </svg>
+              </span>
+              <h3 data-i18n="support.linkedinTitle"></h3>
+              <p data-i18n="support.linkedinCopy"></p>
+              <span class="lv-channel-value">linkedin.com/company/lingo-ville</span>
+            </a>
+
+          </div>
+
+          <div class="lv-hours">
+            <div class="lv-hour">
+              <div class="day" data-i18n="support.hoursMonFri"></div>
+              <div class="time" data-i18n="support.hoursMonFriTime"></div>
+            </div>
+            <div class="lv-hour">
+              <div class="day" data-i18n="support.hoursSat"></div>
+              <div class="time" data-i18n="support.hoursSatTime"></div>
+            </div>
+            <div class="lv-hour">
+              <div class="day" data-i18n="support.hoursSun"></div>
+              <div class="time" data-i18n="support.hoursSunTime"></div>
+            </div>
+          </div>
+
+          <div class="lv-verify-cta">
+            <div>
+              <h2 data-i18n="support.verifyTitle"></h2>
+              <p data-i18n="support.verifyCopy"></p>
+              <a href="/" class="lv-btn">
+                <span data-i18n="support.verifyCta"></span> ↗
+              </a>
+            </div>
+            <div style="text-align:right; font-family:var(--font-mono); font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; opacity:.75;">
+              cert.lingo-ville.com
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="lv-footer">
+      <div class="lv-container">
+        <div class="lv-footer-grid">
+          <div>
+            <a href="/" class="lv-footer-brand">
+              <img src="/logo.png" alt="" />
+              <span>LINGO VILLE</span>
+            </a>
+            <p data-i18n="footer.tagline"></p>
+          </div>
+          <div>
+            <h4 data-i18n="footer.content"></h4>
+            <a href="/" data-i18n="footer.authenticity"></a>
+            <a href="/" data-i18n="footer.reports"></a>
+            <a href="/" data-i18n="footer.validation"></a>
+            <a href="https://lingo-land.net" target="_blank" rel="noopener" data-i18n="footer.books"></a>
+          </div>
+          <div>
+            <h4 data-i18n="footer.support"></h4>
+            <a href="mailto:contact@lingo-ville.com">contact@lingo-ville.com</a>
+            <a href="tel:+21622571291">+216 22 571 291</a>
+            <a href="https://lingo-ville.com/" target="_blank" rel="noopener"><span data-i18n="footer.mainSite"></span> ↗</a>
+            <span style="display:block;margin:9px 0;font-size:.82rem;color:#cbc5b9;" data-i18n="footer.location"></span>
+          </div>
+        </div>
+        <div class="lv-footer-bottom">
+          <span id="footerRights">© 2025 Lingo‑Ville. All rights reserved.</span>
+          <span data-i18n="footer.verifiable"></span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // ---------- Mobile dropdown menu ----------
+    (function () {
+      var btn = document.getElementById('mobileMenuBtn');
+      var menu = document.getElementById('mobileMenu');
+      if (!btn || !menu) return;
+
+      function setOpen(open) {
+        if (open) {
+          menu.classList.remove('hidden');
+          btn.classList.add('is-open');
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          menu.classList.add('hidden');
+          btn.classList.remove('is-open');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      }
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        setOpen(menu.classList.contains('hidden'));
+      });
+
+      menu.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function () { setOpen(false); });
+      });
+
+      document.addEventListener('click', function (e) {
+        if (menu.classList.contains('hidden')) return;
+        if (!menu.contains(e.target) && !btn.contains(e.target)) setOpen(false);
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !menu.classList.contains('hidden')) setOpen(false);
+      });
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 900 && !menu.classList.contains('hidden')) setOpen(false);
+      });
+    })();
+
+    // Bump the year in the copyright strip
+    (function () {
+      var el = document.getElementById('footerRights');
+      if (el) el.textContent = el.textContent.replace('2025', String(new Date().getFullYear()));
+    })();
+  </script>
+
+  <script src="i18n.js"></script>
+</body>
+</html>
