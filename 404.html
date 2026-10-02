@@ -1,291 +1,368 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lingo‑Ville | Page Not Found</title>
-    <meta name="description" content="The Lingo‑Ville certificate verification page could not be found." />
-  
-    <!-- ===== OPEN GRAPH ===== -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://cert.lingo-ville.com/" />
-    <meta property="og:title" content="Lingo‑Ville | Page Not Found" />
-    <meta property="og:description" content="The Lingo‑Ville certificate verification page could not be found." />
-    <meta property="og:image" content="/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Lingo‑Ville certificate verification preview" />
-    <meta property="og:site_name" content="Lingo‑Ville | 404" />
-    <meta property="og:locale" content="en_US" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Lingo‑Ville | Page Not Found</title>
+  <meta name="description" content="The Lingo‑Ville certificate verification page could not be found." />
+  <meta name="robots" content="noindex, follow" />
+  <meta name="theme-color" content="#0F9589" />
+  <link rel="canonical" href="https://cert.lingo-ville.com/" />
 
-    <!-- ===== TWITTER CARD ===== -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://cert.lingo-ville.com/" />
-    <meta name="twitter:title" content="Lingo‑Ville | 404" />
-    <meta name="twitter:description" content="The Lingo‑Ville certificate verification page could not be found." />
-    <meta name="twitter:image" content="/og-image.png" />
-    <meta name="twitter:image:alt" content="Lingo‑Ville certificate verification preview" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <!-- ===== FAVICONS ===== -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/logo.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://cert.lingo-ville.com/" />
+  <meta property="og:title" content="Lingo‑Ville | Page Not Found" />
+  <meta property="og:description" content="The Lingo‑Ville certificate verification page could not be found." />
+  <meta property="og:image" content="/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="Lingo‑Ville" />
+  <meta property="og:locale" content="en_US" />
 
-        
-    <!-- ===== TAILWIND + FONTS ===== -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-        theme: {
-            extend: {
-            colors: {
-                teal: { DEFAULT: '#00aba5', 50: '#e6f7f6', 600: '#008984', 700: '#006762' },
-                orange: { DEFAULT: '#F8A233', 500: '#F8A233', 600: '#e6821f' },
-                'orange-deep': '#ff7428'
-            },
-            fontFamily: { nunito: ['Nunito', 'system-ui', 'sans-serif'] },
-            boxShadow: {
-                soft: '0 8px 30px rgba(0,0,0,0.06)',
-                'teal-glow': '0 10px 25px -5px rgba(0,171,165,0.3)'
-            }
-            }
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Lingo‑Ville | 404" />
+  <meta name="twitter:description" content="The Lingo‑Ville certificate verification page could not be found." />
+  <meta name="twitter:image" content="/og-image.png" />
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal: { 50:'#e6f5f4',100:'#c8ebe8',200:'#96d9d2',300:'#63c6ba',400:'#38b3a5',500:'#0F9589',600:'#0a776e',700:'#075049',800:'#043e39',900:'#022c28',DEFAULT:'#0F9589' },
+            orange: { 50:'#fff3ec',100:'#ffe0d0',200:'#ffc5a4',300:'#ffa575',400:'#ff8749',500:'#FF6B2C',600:'#e05517',700:'#b8430f',DEFAULT:'#FF6B2C' },
+            ink: '#111111', paper: '#f5eee1'
+          },
+          fontFamily: {
+            display: ['Space Grotesk','system-ui','sans-serif'],
+            sans: ['DM Sans','system-ui','sans-serif'],
+            mono: ['DM Mono','ui-monospace','monospace']
+          }
         }
-        };
-    </script>
-    <style>
-        :root {
-            --teal: #00aba5;
-            --teal-dark: #0f3d3f;
-            --orange: #f8a233;
-            --ink: #172b35;
-            --muted: #637681;
-            --line: #d9e8e7;
-            --paper: #ffffff;
-        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
 
-        * { box-sizing: border-box; }
-
-        body {
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            color: var(--ink);
-            background:
-                linear-gradient(135deg, rgba(0, 171, 165, .08), transparent 42%),
-                repeating-linear-gradient(135deg, rgba(15, 61, 63, .035) 0 1px, transparent 1px 18px),
-                #f5faf9;
-            font-family: 'Nunito', system-ui, sans-serif;
-        }
-    @media print {
-      body { background: white; }
-      header, footer, .no-print, .toast, button, a[download] { display: none !important; }
-      .pdf-viewer { box-shadow: none; border: 1px solid #cbd5e1; max-height: none; }
+  <style>
+    :root {
+      --ink:#111111; --paper:#f5eee1; --teal:#0F9589; --teal-dark:#0a6e65;
+      --orange:#FF6B2C; --yellow:#ffc928; --green:#11aa62; --purple:#b78af1;
+      --card:#fffaf2; --line:rgba(17,17,17,.24); --muted:#6e6a62;
+      --font-display:'Space Grotesk', system-ui, sans-serif;
+      --font-sans:'DM Sans', system-ui, sans-serif;
+      --font-mono:'DM Mono', ui-monospace, monospace;
     }
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;min-height:100dvh;background:var(--paper);color:var(--ink);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+    .hidden{display:none !important}
 
-        .brand {
-            display: inline-flex;
-            align-items: center;
-            gap: .65rem;
-            color: #fff;
-            font-size: 1.1rem;
-            font-weight: 900;
-            text-decoration: none;
-        }
+    .lv-shell{min-height:100dvh;padding-left:136px;display:flex;flex-direction:column}
+    .lv-sidebar{position:fixed;inset:0 auto 0 0;width:136px;z-index:50;background:var(--paper);border-right:1px solid var(--ink);padding:14px 10px 12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden}
+    .lv-brand{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:inherit}
+    .lv-brand-mark{width:56px;height:56px;display:block;object-fit:contain}
+    .lv-brand-sub{font-family:var(--font-mono);font-size:.55rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center;line-height:1.2}
+    .lv-rail{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .lv-rail-link{flex:1 1 0;min-height:72px;display:flex;flex-direction:column;justify-content:space-between;padding:12px 10px;border:1px solid var(--ink);border-radius:14px;text-decoration:none;color:var(--ink);font-family:var(--font-display);font-weight:700;font-size:.82rem;letter-spacing:-.01em;line-height:1.15;transition:transform .25s ease,box-shadow .25s ease}
+    .lv-rail-link:hover{transform:translateX(4px);box-shadow:4px 4px 0 var(--ink)}
+    .lv-rail-link .lv-rail-top{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.04em}
+    .lv-rail-link .lv-rail-arrow{font-family:var(--font-mono);font-size:.72rem;line-height:1}
+    .lv-rail-link.lv-teal{background:var(--teal);color:var(--paper)}
+    .lv-rail-link.lv-yellow{background:var(--yellow)}
+    .lv-rail-link.lv-green{background:var(--green)}
+    .lv-utility{display:block;padding:11px 8px;text-align:center;border:1px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--paper);text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:-.01em;transition:transform .2s,box-shadow .2s;cursor:pointer}
+    .lv-utility:hover{transform:translateY(-2px);box-shadow:3px 3px 0 var(--ink)}
+    .lv-toggle{display:block;width:100%;padding:10px 6px;border:1px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--paper);font:inherit;font-family:var(--font-sans);font-size:.68rem;font-weight:700;letter-spacing:.02em;text-align:center;cursor:pointer;transition:background .2s,transform .2s,box-shadow .2s}
+    .lv-toggle:hover{background:var(--teal);transform:translateY(-2px);box-shadow:3px 3px 0 var(--ink)}
+    .lv-socials{display:block;width:100%;padding:10px 6px;border:1px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--paper);text-align:center;text-decoration:none;font-size:.68rem;font-weight:700;letter-spacing:5px;transition:background .2s,transform .2s,box-shadow .2s}
+    .lv-socials:hover{background:var(--teal);transform:translateY(-2px);box-shadow:3px 3px 0 var(--ink)}
+    .lv-mobile-bar{display:none}
 
-        .brand img {
-            width: 40px;
-            height: 40px;
-            padding: 2px;
-            border-radius: 50%;
-            background: #fff;
-            object-fit: contain;
-        }
-        main {
-            flex: 1;
-            display: grid;
-            place-items: center;
-            padding: 4rem 0;
-        }
+    .lv-main{flex:1 1 auto;display:flex;flex-direction:column;min-height:100dvh}
+    .lv-container{width:min(1280px,calc(100% - 48px));margin:0 auto}
 
-        .error-panel {
-            width: min(100%, 680px);
-            padding: clamp(2rem, 6vw, 4.5rem);
-            text-align: center;
-            background: var(--paper);
-            border: 1px solid var(--line);
-            border-radius: 24px;
-            box-shadow: 0 18px 45px rgba(15, 61, 63, .1);
-        }
+    /* ---------- 404 ---------- */
+    .lv-404-wrap{
+      flex:1 1 auto;
+      display:grid;
+      place-items:center;
+      padding:72px 24px;
+    }
+    .lv-404-inner{
+      max-width:640px;
+      text-align:center;
+    }
+    .lv-error-icon{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:80px;height:80px;border-radius:22px;
+      background:var(--orange);border:1px solid var(--ink);
+      box-shadow:5px 5px 0 var(--ink);
+      margin:0 auto 26px;color:var(--ink);
+      font-family:var(--font-display);font-weight:700;font-size:2rem;
+    }
+    .lv-404-code{
+      margin:0;
+      font-family:var(--font-display);font-weight:700;
+      font-size:clamp(5rem,16vw,9rem);
+      line-height:.82;letter-spacing:-.06em;
+      color:var(--orange);
+    }
+    .lv-error-h2{
+      font-family:var(--font-display);font-weight:700;
+      font-size:clamp(1.8rem,4vw,2.8rem);
+      letter-spacing:-.05em;line-height:.95;
+      margin:18px 0 14px;
+    }
+    .lv-error-copy{
+      max-width:480px;margin:0 auto 30px;
+      color:#4c4944;line-height:1.6;font-size:.98rem;
+    }
+    .lv-404-actions{
+      display:flex;justify-content:center;flex-wrap:wrap;gap:10px;
+    }
+    .lv-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border:1px solid var(--ink);border-radius:999px;cursor:pointer;text-decoration:none;font-family:var(--font-sans);font-size:.8rem;font-weight:700;color:var(--ink);background:transparent;transition:transform .25s,box-shadow .25s,background .25s;white-space:nowrap}
+    .lv-btn:hover{transform:translateY(-3px);box-shadow:4px 4px 0 var(--ink)}
+    .lv-btn-teal{background:var(--teal);color:var(--paper)}
+    .lv-btn-ghost{background:var(--card)}
 
-        .error-mark {
-            width: 92px;
-            height: 92px;
-            margin: 0 auto 1.5rem;
-            display: grid;
-            place-items: center;
-            border: 10px solid #fff3df;
-            border-radius: 50%;
-            color: #c96f17;
-            background: #fff9ef;
-            font-size: 2.25rem;
-            font-weight: 900;
-        }
+    /* ---------- FOOTER ---------- */
+    .lv-footer{background:var(--ink);color:var(--paper);padding:48px 0 20px;margin-top:auto}
+    .lv-footer-grid{display:grid;grid-template-columns:1.2fr .8fr .8fr;gap:40px}
+    .lv-footer h4{font-family:var(--font-sans);font-size:.66rem;color:var(--orange);text-transform:uppercase;letter-spacing:.1em;margin:0 0 14px;font-weight:700}
+    .lv-footer p{color:#cbc5b9;line-height:1.5;max-width:320px;margin:0;font-size:.88rem}
+    .lv-footer a{display:block;text-decoration:none;margin:8px 0;font-size:.82rem;color:inherit;transition:color .2s}
+    .lv-footer a:hover{color:var(--yellow)}
+    .lv-footer .lv-footer-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;margin-bottom:14px}
+    .lv-footer .lv-footer-brand img{width:40px;height:40px;object-fit:contain}
+    .lv-footer .lv-footer-brand span{font-family:var(--font-display);font-weight:700;font-size:1rem;letter-spacing:-.04em;color:var(--paper)}
+    .lv-footer-bottom{border-top:1px solid #4a4843;margin-top:32px;padding-top:16px;color:#aaa398;font-size:.66rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
-        .error-code {
-            margin: 0;
-            color: var(--orange);
-            font-size: clamp(4.5rem, 16vw, 8rem);
-            font-weight: 900;
-            line-height: .85;
-            letter-spacing: .02em;
-        }
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width:900px){
+      .lv-shell{padding-left:0}
+      .lv-sidebar{display:none}
+      .lv-mobile-bar{display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:64px;border-bottom:1px solid var(--ink);background:var(--paper);position:sticky;top:0;z-index:60}
+      .lv-mobile-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+      .lv-mobile-brand img{width:36px;height:36px;object-fit:contain}
+      .lv-mobile-brand span{font-family:var(--font-display);font-weight:700;font-size:.82rem;letter-spacing:-.05em;line-height:1}
+      .lv-mobile-actions{display:flex;align-items:center;gap:8px}
+      .lv-mobile-lang{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 13px;border:1px solid var(--ink);border-radius:999px;background:var(--ink);color:var(--paper);font:inherit;font-family:var(--font-sans);font-size:.68rem;font-weight:700;letter-spacing:.02em;cursor:pointer;appearance:none;-webkit-appearance:none;transition:background .2s,transform .2s}
+      .lv-mobile-lang:hover{background:var(--teal)}
+      .lv-mobile-menu-btn{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid var(--ink);border-radius:50%;background:transparent;color:var(--ink);font:inherit;cursor:pointer;transition:background .2s,color .2s}
+      .lv-mobile-menu-btn:hover{background:var(--ink);color:var(--paper)}
+      .lv-mobile-menu-btn svg{width:17px;height:17px}
+      .lv-mobile-menu-btn .lv-icon-close{display:none}
+      .lv-mobile-menu-btn.is-open .lv-icon-menu{display:none}
+      .lv-mobile-menu-btn.is-open .lv-icon-close{display:block}
+      .lv-mobile-menu{position:fixed;top:64px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--ink);padding:14px 18px;display:grid;gap:6px;box-shadow:0 10px 24px rgba(17,17,17,.13);z-index:59}
+      .lv-mobile-menu a{display:block;padding:10px 5px;text-decoration:none;color:var(--ink);font-family:var(--font-sans);font-weight:700;font-size:.92rem}
+      .lv-mobile-menu-divider{border-top:1px solid var(--ink);margin:6px 0}
 
-        h1 { margin: 1.4rem 0 .7rem; font-size: clamp(1.7rem, 4vw, 2.35rem); line-height: 1.15; }
-        .message { max-width: 480px; margin: 0 auto 2rem; color: var(--muted); line-height: 1.65; }
-
-        .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; }
-        .button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 48px;
-            padding: .75rem 1.25rem;
-            border: 2px solid transparent;
-            border-radius: 12px;
-            font: inherit;
-            font-weight: 800;
-            text-decoration: none;
-            transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
-        }
-
-        .button:hover { transform: translateY(-2px); }
-        .button-primary { color: #fff; background: var(--teal); box-shadow: 0 8px 18px rgba(0, 171, 165, .22); }
-        .button-primary:hover { background: #008984; }
-        .button-secondary { color: var(--teal-dark); border-color: var(--line); background: #fff; }
-        .button-secondary:hover { background: #eef8f7; }
-
-        /* ---------- Footer ---------- */
-        footer.site-footer {
-        background-color: #11504B;
-        color: #e2e8f0;
-        padding: 40px 20px 20px;
-        margin-top: auto;
-        }
-        footer.site-footer .footer-inner {
-        max-width: 1280px;
-        margin: 0 auto;
-        }
-        footer.site-footer .footer-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 2rem;
-        align-items: start;
-        }
-        @media (min-width: 768px) {
-        footer.site-footer .footer-grid {
-            grid-template-columns: repeat(4, 1fr);
-        }
-        }
-        footer.site-footer img { max-width: 96px; height: auto; }
-        footer.site-footer .footer-brand {
-        color: #ffffff;
-        font-size: 1.125rem;
-        font-weight: 800;
-        }
-        footer.site-footer .footer-brand .brand-accent { color: var(--orange); }
-        footer.site-footer h4 {
-        color: #ffffff;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        }
-        footer.site-footer ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        font-size: 0.875rem;
-        }
-        footer.site-footer ul li { margin-bottom: 0.25rem; }
-        footer.site-footer a { color: inherit; text-decoration: none; transition: color .2s; }
-        footer.site-footer a:hover { color: var(--orange); }
-        footer.site-footer .footer-bottom {
-        border-top: 1px solid rgba(255,255,255,0.15);
-        margin-top: 2rem;
-        padding-top: 1.5rem;
-        text-align: center;
-        font-size: 0.875rem;
-        color: #94a3b8;
-        line-height: 1.6;
-        }
-
-    </style>
+      .lv-container{width:min(100% - 32px,720px)}
+      .lv-404-wrap{padding:48px 20px}
+      .lv-footer-grid{grid-template-columns:1fr 1fr;gap:28px}
+    }
+    @media (max-width:560px){
+      .lv-container{width:calc(100% - 28px)}
+      .lv-404-wrap{padding:36px 16px}
+      .lv-404-actions{flex-direction:column}
+      .lv-404-actions .lv-btn{width:100%}
+      .lv-footer-grid{grid-template-columns:1fr;gap:24px}
+      .lv-footer-bottom{display:block}
+      .lv-footer-bottom span{display:block}
+      .lv-footer-bottom span+span{margin-top:6px}
+    }
+  </style>
 </head>
 <body>
 
-  <!-- ===== HEADER ===== -->
-  <header class="border-b border-teal-100 sticky top-0 z-40 no-print" style="background-color:#00aba5">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2 group" aria-label="Lingo‑Ville home">
-        <img src="logo.png" alt="" class="w-9 h-9 rounded-full bg-white p-0.5" onerror="this.style.display='none'" />
-        <span class="text-white font-extrabold text-lg">Lingo<span class="text-orange-300">Ville</span></span>
-      </a>
-      <span class="text-white/70 text-sm hidden sm:inline" id="navLabel">Certificate Verification</span>
-    </div>
-  </header>
+  <div class="lv-shell">
 
-    <main>
-        <section class="error-panel" aria-labelledby="page-title">
-            <div class="error-mark" aria-hidden="true">!</div>
-            <p class="error-code" aria-hidden="true">404</p>
-            <h1 id="page-title">This page is not on the record</h1>
-            <p class="message">The certificate verification page you requested may have moved, expired, or never existed. Let’s get you back to the official portal.</p>
-            <div class="actions">
-                <a class="button button-primary" href="/">Verify a certificate</a>
-                <a class="button button-secondary" href="https://lingo-ville.com/">Visit Lingo‑Ville</a>
-            </div>
-        </section>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="lv-sidebar" aria-label="Main navigation">
+      <a href="/" class="lv-brand" aria-label="Lingo‑Ville">
+        <img src="/logo.png" alt="" class="lv-brand-mark" />
+        <span class="lv-brand-sub" data-i18n-html="brand.sub"></span>
+      </a>
+
+      <nav class="lv-rail" aria-label="Primary">
+        <a href="/" class="lv-rail-link lv-teal">
+          <span class="lv-rail-top"><span>01</span><span class="lv-rail-arrow">↗</span></span>
+          <span data-i18n="nav.verify"></span>
+        </a>
+        <a href="/support.html" class="lv-rail-link lv-yellow">
+          <span class="lv-rail-top"><span>02</span><span class="lv-rail-arrow">↗</span></span>
+          <span data-i18n="nav.support"></span>
+        </a>
+        <a href="https://lingo-ville.com/" target="_blank" rel="noopener" class="lv-rail-link lv-green">
+          <span class="lv-rail-top"><span>03</span><span class="lv-rail-arrow">↗</span></span>
+          <span data-i18n="nav.mainSite"></span>
+        </a>
+      </nav>
+
+      <a href="https://lingo-ville.com/login" target="_blank" rel="noopener" class="lv-utility">
+        <span data-i18n="nav.login"></span> ↗
+      </a>
+
+      <button type="button" class="lv-toggle" data-lang-toggle data-i18n-attr="aria-label:nav.toggleAria">
+        English · FR
+      </button>
+
+      <a href="https://card.tccards.tn/@lingo-ville" target="_blank" rel="noopener" class="lv-socials"
+         data-i18n-attr="aria-label:nav.socialsAria">
+        ◎ f in
+      </a>
+    </aside>
+
+    <!-- ===== MOBILE BAR ===== -->
+    <header class="lv-mobile-bar">
+      <a href="/" class="lv-mobile-brand">
+        <img src="/logo.png" alt="" />
+        <span>LINGO<br />VILLE</span>
+      </a>
+
+      <div class="lv-mobile-actions">
+        <button type="button" class="lv-mobile-lang" data-lang-toggle
+                data-i18n-attr="aria-label:nav.toggleAria">English · FR</button>
+        <button type="button" class="lv-mobile-menu-btn" id="mobileMenuBtn"
+                data-i18n-attr="aria-label:nav.menuAria" aria-expanded="false" aria-controls="mobileMenu">
+          <svg class="lv-icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+          </svg>
+          <svg class="lv-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="lv-mobile-menu hidden" id="mobileMenu" aria-label="Mobile navigation">
+        <a href="https://lingo-ville.com/" data-i18n="nav.home"></a>
+        <a href="/" data-i18n="nav.verify"></a>
+        <a href="/support.html" data-i18n="nav.support"></a>
+        <div class="lv-mobile-menu-divider"></div>
+        <a href="https://lingo-ville.com/login" target="_blank" rel="noopener">
+          <span data-i18n="nav.login"></span> ↗
+        </a>
+      </nav>
+    </header>
+
+    <!-- ===== MAIN ===== -->
+    <main class="lv-main">
+      <section class="lv-404-wrap">
+        <div class="lv-404-inner">
+          <div class="lv-error-icon" aria-hidden="true">!</div>
+          <p class="lv-404-code" aria-hidden="true">404</p>
+          <h1 class="lv-error-h2">This page is not on the record.</h1>
+          <p class="lv-error-copy">
+            The certificate verification page you requested may have moved, expired, or never existed. Let's get you back to the official portal.
+          </p>
+          <div class="lv-404-actions">
+            <a href="/" class="lv-btn lv-btn-teal">Verify a certificate</a>
+            <a href="https://lingo-ville.com/" class="lv-btn lv-btn-ghost" target="_blank" rel="noopener">Visit Lingo Ville ↗</a>
+          </div>
+        </div>
+      </section>
     </main>
 
-  <footer class="site-footer no-print">
-    <div class="footer-inner">
-      <div class="footer-grid">
-        <div class="flex items-center justify-center md:justify-start">
-          <img src="logo.png" alt="LingoVille Logo" loading="lazy" />
+    <!-- ===== FOOTER ===== -->
+    <footer class="lv-footer">
+      <div class="lv-container">
+        <div class="lv-footer-grid">
+          <div>
+            <a href="/" class="lv-footer-brand">
+              <img src="/logo.png" alt="" />
+              <span>LINGO VILLE</span>
+            </a>
+            <p data-i18n="footer.tagline"></p>
+          </div>
+          <div>
+            <h4 data-i18n="footer.content"></h4>
+            <a href="/" data-i18n="footer.authenticity"></a>
+            <a href="/" data-i18n="footer.reports"></a>
+            <a href="/" data-i18n="footer.validation"></a>
+            <a href="https://lingo-land.net" target="_blank" rel="noopener" data-i18n="footer.books"></a>
+          </div>
+          <div>
+            <h4 data-i18n="footer.support"></h4>
+            <a href="mailto:contact@lingo-ville.com">contact@lingo-ville.com</a>
+            <a href="tel:+21622571291">+216 22 571 291</a>
+            <a href="tel:+21695883871">+216 95 883 871</a>
+            <a href="https://lingo-ville.com/" target="_blank" rel="noopener"><span data-i18n="footer.mainSite"></span> ↗</a>
+            <span style="display:block;margin:8px 0;font-size:.82rem;color:#cbc5b9;" data-i18n="footer.location"></span>
+          </div>
         </div>
-        <div>
-          <span class="footer-brand">Lingo<span class="brand-accent">Ville</span></span>
-          <p class="text-sm mt-2">Accredited language centre — official certificate issuer.</p>
-        </div>
-        <div>
-          <h4>Content</h4>
-          <ul>
-            <li><a href="https://cert.lingo-ville.com" target="_blank" rel="noopener">Certificate authenticity</a></li>
-            <li>Student reports</li>
-            <li>Credential validation</li>
-            <li><a href="https://lingo-land.net" target="_blank" rel="noopener">LingoLand Course Books</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4>Support</h4>
-          <ul>
-            <li><a href="mailto:contact@lingo-ville.com">contact@lingo-ville.com</a></li>
-            <li><a href="tel:+21622571291">+216 22 571 291</a></li>
-            <li>Sfax, Tunisia</li>
-          </ul>
+        <div class="lv-footer-bottom">
+          <span id="footerRights">© 2025 Lingo‑Ville. All rights reserved.</span>
+          <span data-i18n="footer.verifiable"></span>
         </div>
       </div>
-      <div class="footer-bottom">
-        © <span id="year"></span> Lingo‑Ville. All rights reserved.<br />
-        Verifiable digital credentials
-      </div>
-    </div>
-  </footer>
+    </footer>
 
-    <script>
-        document.getElementById('year').textContent = new Date().getFullYear();
-    </script>
+  </div>
+
+  <script>
+    // ---------- Mobile dropdown menu ----------
+    (function () {
+      var btn = document.getElementById('mobileMenuBtn');
+      var menu = document.getElementById('mobileMenu');
+      if (!btn || !menu) return;
+
+      function setOpen(open) {
+        if (open) {
+          menu.classList.remove('hidden');
+          btn.classList.add('is-open');
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          menu.classList.add('hidden');
+          btn.classList.remove('is-open');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      }
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        setOpen(menu.classList.contains('hidden'));
+      });
+
+      menu.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function () { setOpen(false); });
+      });
+
+      document.addEventListener('click', function (e) {
+        if (menu.classList.contains('hidden')) return;
+        if (!menu.contains(e.target) && !btn.contains(e.target)) setOpen(false);
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !menu.classList.contains('hidden')) setOpen(false);
+      });
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 900 && !menu.classList.contains('hidden')) setOpen(false);
+      });
+    })();
+
+    // Bump the year
+    (function () {
+      var el = document.getElementById('footerRights');
+      if (el) el.textContent = el.textContent.replace('2025', String(new Date().getFullYear()));
+    })();
+  </script>
+
+  <script src="i18n.js"></script>
 </body>
 </html>

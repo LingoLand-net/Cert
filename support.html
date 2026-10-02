@@ -82,6 +82,16 @@
     .lv-channel p{margin:0;color:#4c4944;font-size:.9rem;line-height:1.5}
     .lv-channel .lv-channel-value{margin-top:auto;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.02em;color:var(--ink);word-break:break-all}
 
+    /* Phone card — two tap-to-call numbers */
+    .lv-channel-phone .lv-channel-value { display: block; }
+    .lv-channel-phone-link {
+      display: block;
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .lv-channel-phone-link:hover { color: var(--orange); }
+    .lv-channel-phone-link + .lv-channel-phone-link { margin-top: 2px; }
+
     .lv-hours{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--ink);border-radius:22px;overflow:hidden;background:var(--card);margin-top:26px}
     .lv-hour{padding:22px 24px;border-right:1px solid var(--ink)}
     .lv-hour:last-child{border-right:0}
@@ -116,7 +126,6 @@
       .lv-shell{padding-left:0}
       .lv-sidebar{display:none}
 
-      /* ---------- Mobile top bar ---------- */
       .lv-mobile-bar{
         display:flex;align-items:center;justify-content:space-between;
         padding:0 18px;height:68px;border-bottom:1px solid var(--ink);
@@ -302,7 +311,7 @@
               <span class="lv-channel-value">contact@lingo-ville.com</span>
             </a>
 
-            <a class="lv-channel" href="tel:+21622571291">
+            <div class="lv-channel lv-channel-phone">
               <span class="lv-channel-icon" style="background: var(--orange); color: var(--ink);">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
@@ -310,8 +319,9 @@
               </span>
               <h3 data-i18n="support.phoneTitle"></h3>
               <p data-i18n="support.phoneCopy"></p>
-              <span class="lv-channel-value">+216 22 571 291</span>
-            </a>
+              <a class="lv-channel-value lv-channel-phone-link" href="tel:+21622571291">+216 22 571 291</a>
+              <a class="lv-channel-value lv-channel-phone-link" href="tel:+21695883871">+216 95 883 871</a>
+            </div>
 
             <a class="lv-channel" href="https://wa.me/21622571291" target="_blank" rel="noopener">
               <span class="lv-channel-icon" style="background: var(--green); color: var(--paper);">
@@ -415,6 +425,7 @@
             <h4 data-i18n="footer.support"></h4>
             <a href="mailto:contact@lingo-ville.com">contact@lingo-ville.com</a>
             <a href="tel:+21622571291">+216 22 571 291</a>
+            <a href="tel:+21695883871">+216 95 883 871</a>
             <a href="https://lingo-ville.com/" target="_blank" rel="noopener"><span data-i18n="footer.mainSite"></span> ↗</a>
             <span style="display:block;margin:9px 0;font-size:.82rem;color:#cbc5b9;" data-i18n="footer.location"></span>
           </div>
@@ -470,7 +481,7 @@
       });
     })();
 
-    // Bump the year in the copyright strip
+    // Bump the year
     (function () {
       var el = document.getElementById('footerRights');
       if (el) el.textContent = el.textContent.replace('2025', String(new Date().getFullYear()));
