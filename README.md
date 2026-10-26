@@ -1,6 +1,4 @@
 # Certification verification
-[![Architecture diagram of lingoland-net/cert](https://gitdiagram.com/lingoland-net/cert/diagram.png)](https://gitdiagram.com/lingoland-net/cert?utm_source=readme&utm_medium=picture)
-
 ## how it works in behind the scenes
 
 ```mermaid
